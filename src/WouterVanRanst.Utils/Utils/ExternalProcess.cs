@@ -84,7 +84,7 @@ public static class ExternalProcess
             throw new NotSupportedException($"{RuntimeInformation.OSDescription} is not supported");
     }
 
-    public static string RunSimpleProcess(string fileName, string arguments)
+    public static string RunSimpleProcess(string fileName, string arguments, DirectoryInfo? workingDirectory = null)
     {
         // https://github.com/Nicholi/OpenSSLCompat/blob/0e682c7b86e25bb219b742792afc839b21f44e44/OpenSSLCompat/Program.cs#L137
 
@@ -99,11 +99,14 @@ public static class ExternalProcess
         process.StartInfo.RedirectStandardOutput = true;
         process.StartInfo.RedirectStandardError = true;
 
+        process.StartInfo.FileName = fileName;
+        process.StartInfo.Arguments = arguments;
+        if (workingDirectory is not null)
+            process.StartInfo.WorkingDirectory = workingDirectory.FullName;
+
         process.OutputDataReceived += (_, data) => output += data.Data + Environment.NewLine;
         process.ErrorDataReceived += (_, data) => errorMsg += data.Data ?? string.Empty;
 
-        process.StartInfo.FileName = fileName;
-        process.StartInfo.Arguments = arguments;
         var cmdString = $"{process.StartInfo.FileName} {process.StartInfo.Arguments}";
 
         var started = process.Start();
