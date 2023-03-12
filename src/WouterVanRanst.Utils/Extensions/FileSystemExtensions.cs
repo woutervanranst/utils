@@ -2,7 +2,7 @@
 
 namespace WouterVanRanst.Utils.Extensions;
 
-public static class FileInfoExtensions
+public static class FileSystemExtensions
 {
     /// <summary>
     /// Copy to targetDir preserving the original filename
@@ -83,5 +83,93 @@ public static class FileInfoExtensions
 
         if (deleteOriginal)
             fi.Delete();
+    }
+
+    /// <summary>
+    /// Empty the directory
+    /// </summary>
+    /// <param name="dir"></param>
+    public static void Clear(this DirectoryInfo dir)
+    {
+        if (dir.Exists) dir.Delete(true);
+        dir.Create();
+    }
+
+    public static FileInfo[] TryGetFiles(this DirectoryInfo d, string searchPattern)
+    {
+        try
+        {
+            return d.GetFiles(searchPattern, SearchOption.AllDirectories);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Array.Empty<FileInfo>();
+        }
+        catch (DirectoryNotFoundException)
+        {
+            return Array.Empty<FileInfo>();
+        }
+    }
+
+    public static void CreateIfNotExists(this DirectoryInfo di)
+    {
+        if (!di.Exists)
+            di.Create();
+    }
+
+    public static string ReadAllText(this FileInfo fi)
+    {
+        return File.ReadAllText(fi.FullName);
+    }
+
+    public static async Task<string> ReadAllTextAsync(this FileInfo fi)
+    {
+        return await File.ReadAllTextAsync(fi.FullName);
+    }
+
+    public static void WriteAllText(this FileInfo fi, string contents)
+    {
+        File.WriteAllText(fi.FullName, contents);
+    }
+
+    public static async Task WriteAllTextAsync(this FileInfo fi, string contents)
+    {
+        await File.WriteAllTextAsync(fi.FullName, contents);
+    }
+
+    public static FileInfo GetFileInfo(this DirectoryInfo di, string relativePath) => new FileInfo(Path.Combine(di.FullName, relativePath));
+
+    public static void CreateDirectoryIfNotExists(this FileInfo fi) => fi.Directory.CreateIfNotExists();
+
+    public static void CopyTo(this DirectoryInfo dir, DirectoryInfo destinationDir, bool recursive)
+    {
+        // Source: https://learn.microsoft.com/en-us/dotnet/standard/io/how-to-copy-directories
+
+        // Check if the source directory exists
+        if (!dir.Exists)
+            throw new DirectoryNotFoundException($"Source directory not found: {dir.FullName}");
+
+        // Cache directories before we start copying
+        var dirs = dir.GetDirectories();
+
+        // Create the destination directory
+        destinationDir.Create();
+
+        // Get the files in the source directory and copy to the destination directory
+        foreach (var file in dir.GetFiles())
+        {
+            var targetFilePath = Path.Combine(destinationDir.FullName, file.Name);
+            file.CopyTo(targetFilePath, true);
+        }
+
+        // If recursive and copying subdirectories, recursively call this method
+        if (recursive)
+        {
+            foreach (var subDir in dirs)
+            {
+                var newDestinationDir = new DirectoryInfo(Path.Combine(destinationDir.FullName, subDir.Name));
+                CopyTo(subDir, newDestinationDir, true);
+            }
+        }
     }
 }
