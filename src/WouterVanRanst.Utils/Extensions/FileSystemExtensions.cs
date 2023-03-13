@@ -137,7 +137,9 @@ public static class FileSystemExtensions
         await File.WriteAllTextAsync(fi.FullName, contents);
     }
 
-    public static FileInfo GetFileInfo(this DirectoryInfo di, string relativePath) => new FileInfo(Path.Combine(di.FullName, relativePath));
+    public static FileInfo GetFileInfo(this DirectoryInfo di, string relativePath) => new (Path.Combine(di.FullName, relativePath));
+
+    public static DirectoryInfo GetDirectory(this DirectoryInfo di, string childFolder) => new(Path.Combine(di.FullName, childFolder));
 
     public static void CreateDirectoryIfNotExists(this FileInfo fi) => fi.Directory.CreateIfNotExists();
 
