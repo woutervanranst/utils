@@ -111,10 +111,18 @@ public static class FileSystemExtensions
         }
     }
 
-    public static void CreateIfNotExists(this DirectoryInfo di)
+    public static FileInfo CreateDirectoryIfNotExists(this FileInfo fi)
+    {
+        fi.Directory.CreateIfNotExists();
+        return fi;
+    }
+
+    public static DirectoryInfo CreateIfNotExists(this DirectoryInfo di)
     {
         if (!di.Exists)
             di.Create();
+
+        return di;
     }
 
     public static string ReadAllText(this FileInfo fi)
@@ -127,6 +135,11 @@ public static class FileSystemExtensions
         return await File.ReadAllTextAsync(fi.FullName);
     }
 
+    public static async Task<string[]> ReadAllLinesAsync(this FileInfo fi)
+    {
+        return await File.ReadAllLinesAsync(fi.FullName);
+    }
+
     public static void WriteAllText(this FileInfo fi, string contents)
     {
         File.WriteAllText(fi.FullName, contents);
@@ -137,11 +150,12 @@ public static class FileSystemExtensions
         await File.WriteAllTextAsync(fi.FullName, contents);
     }
 
+    
     public static FileInfo GetFileInfo(this DirectoryInfo di, string relativePath) => new (Path.Combine(di.FullName, relativePath));
 
     public static DirectoryInfo GetDirectory(this DirectoryInfo di, string childFolder) => new(Path.Combine(di.FullName, childFolder));
 
-    public static void CreateDirectoryIfNotExists(this FileInfo fi) => fi.Directory.CreateIfNotExists();
+    
 
     public static void CopyTo(this DirectoryInfo dir, DirectoryInfo destinationDir, bool recursive)
     {
