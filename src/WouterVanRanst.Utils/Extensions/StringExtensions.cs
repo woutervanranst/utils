@@ -19,7 +19,7 @@ public static class StringExtensions
         {
             while (!string.IsNullOrEmpty(inputText) && inputText.EndsWith(value, comparisonType))
             {
-                inputText = inputText.Substring(0, inputText.Length - value.Length);
+                inputText = inputText[..^value.Length];
             }
         }
 
@@ -76,5 +76,32 @@ public static class StringExtensions
 
         // Lowercase and return
         return value.ToLower();
+    }
+
+    public static (string[], string) RemoveLongestCommonPrefix(this string[] values)
+    {
+        var length = GetLongestCommonPrefixLength(values).StartIndex;
+
+        var prefix = values.First()[..length];
+        var array = values.Select(v => v[length..]).ToArray();
+
+        return (array, prefix);
+    }
+
+    /// <summary>
+    /// Returns the zero-based length of the longest common prefix
+    /// </summary>
+    /// <param name="values"></param>
+    /// <returns></returns>
+    public static (int StartIndex, string Prefix) GetLongestCommonPrefixLength(this string[] values)
+    {
+        if (values.Length == 1)
+            return (0, "");
+
+        var i = 0;
+        while (values.Select(v => v[..i]).Distinct().Count() == 1)
+            i++;
+
+        return (i - 1, values.First()[0..(i - 1)]);
     }
 }
