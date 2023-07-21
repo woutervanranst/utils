@@ -20,5 +20,10 @@ namespace Architecturizr.Shared
         {
             return sequence.Where(e => e != null).Select(e => e.Value);
         }
+
+        public static bool None<T>(this IEnumerable<T> sequence)
+        {
+            return !sequence.Any();
+        }
     }
 }

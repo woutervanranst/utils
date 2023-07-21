@@ -15,14 +15,12 @@ public static class ExternalProcess
     /// <param name="linuxExecutableName">The Linux executable name</param>
     /// <param name="logger"></param>
     /// <returns></returns>
-    public static string FindFullName(string windowsExecutableName, string linuxExecutableName, ILogger logger = null)
+    public static string FindFullName(string windowsExecutableName, string linuxExecutableName, ILogger logger = default)
     {
-        logger ??= NullLoggerFactory.Instance.CreateLogger("");
-
-        logger.LogDebug($"Looking for windows:{windowsExecutableName} / linux:{linuxExecutableName}");
+        logger?.LogDebug($"Looking for windows:{windowsExecutableName} / linux:{linuxExecutableName}");
         var path = Environment.GetEnvironmentVariable("PATH");
         if (string.IsNullOrEmpty(path))
-            logger.LogWarning("Environment variable PATH not found");
+            logger?.LogWarning("Environment variable PATH not found");
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
@@ -39,7 +37,7 @@ public static class ExternalProcess
                 {
                     var fullname = executables.First().FullName;
 
-                    logger.LogDebug($"Found {executables.Length} instance(s) of {windowsExecutableName}. Returning the first one: {fullname}");
+                    logger?.LogDebug($"Found {executables.Length} instance(s) of {windowsExecutableName}. Returning the first one: {fullname}");
 
                     return fullname;
                 }
@@ -50,10 +48,10 @@ public static class ExternalProcess
 
             try
             {
-                logger.LogWarning($"Did not find {windowsExecutableName} in PATH variable. Searching on {path}. Consider adding the location to the PATH variable to improve speed.");
+                logger?.LogWarning($"Did not find {windowsExecutableName} in PATH variable. Searching on {path}. Consider adding the location to the PATH variable to improve speed.");
                 var fullNames = RunSimpleProcess("where", $" /R {path} {windowsExecutableName}").Split(Environment.NewLine);
 
-                logger.LogDebug($"Found {fullNames.Length} instance(s) of {windowsExecutableName}. Returning the first one: {fullNames.First()}");
+                logger?.LogDebug($"Found {fullNames.Length} instance(s) of {windowsExecutableName}. Returning the first one: {fullNames.First()}");
 
                 return fullNames.First();
             }
@@ -71,7 +69,7 @@ public static class ExternalProcess
             {
                 var fullNames = RunSimpleProcess("which", $"{linuxExecutableName}").Split(Environment.NewLine);
 
-                logger.LogDebug($"Found {fullNames.Length} instance(s) of {linuxExecutableName}. Returning the first one: {fullNames.First()}");
+                logger?.LogDebug($"Found {fullNames.Length} instance(s) of {linuxExecutableName}. Returning the first one: {fullNames.First()}");
 
                 return fullNames.First();
             }
@@ -90,8 +88,8 @@ public static class ExternalProcess
 
         using var process = new Process();
 
-        string errorMsg = string.Empty;
-        string output = string.Empty;
+        var errorMsg = string.Empty;
+        var output = string.Empty;
 
         process.StartInfo.UseShellExecute = false;
         process.StartInfo.CreateNoWindow = true;
@@ -115,7 +113,7 @@ public static class ExternalProcess
         process.WaitForExit();
 
         if (process.ExitCode != 0)
-            throw new ApplicationException($"Error in process execution { fileName} {arguments}: {(string.IsNullOrEmpty(errorMsg) ? output : errorMsg)}");
+            throw new ApplicationException($"Error in process execution {fileName} {arguments}: {(string.IsNullOrEmpty(errorMsg) ? output : errorMsg)}");
 
         return output;
     }
