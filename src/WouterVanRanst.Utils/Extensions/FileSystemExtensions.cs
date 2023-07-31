@@ -42,6 +42,39 @@ public static class FileSystemExtensions
         return target;
     }
 
+    public static void CopyTo(this DirectoryInfo dir, DirectoryInfo destinationDir, bool recursive)
+    {
+        // Source: https://learn.microsoft.com/en-us/dotnet/standard/io/how-to-copy-directories
+
+        // Check if the source directory exists
+        if (!dir.Exists)
+            throw new DirectoryNotFoundException($"Source directory not found: {dir.FullName}");
+
+        // Cache directories before we start copying
+        var dirs = dir.GetDirectories();
+
+        // Create the destination directory
+        destinationDir.Create();
+
+        // Get the files in the source directory and copy to the destination directory
+        foreach (var file in dir.GetFiles())
+        {
+            var targetFilePath = Path.Combine(destinationDir.FullName, file.Name);
+            file.CopyTo(targetFilePath, true);
+        }
+
+        // If recursive and copying subdirectories, recursively call this method
+        if (recursive)
+        {
+            foreach (var subDir in dirs)
+            {
+                var newDestinationDir = new DirectoryInfo(Path.Combine(destinationDir.FullName, subDir.Name));
+                CopyTo(subDir, newDestinationDir, true);
+            }
+        }
+    }
+
+
     /// <summary>
     /// Checks whether fi is in the directory tree under parent, recursively
     /// eg. c:\test\dir1\file1.txt, c:\test\dir1 is true
@@ -91,8 +124,25 @@ public static class FileSystemExtensions
     /// <param name="dir"></param>
     public static void Clear(this DirectoryInfo dir)
     {
-        if (dir.Exists) dir.Delete(true);
-        dir.Create();
+        if (dir is not { Exists: true }) 
+            return;
+
+        // Delete all files in the directory
+        foreach (var file in dir.GetFiles())
+        {
+            file.Delete();
+        }
+
+        // Delete all subdirectories and their contents
+        foreach (var subDirectory in dir.GetDirectories())
+        {
+            subDirectory.Delete(true);
+        }
+
+
+        // this implementation causes access issues
+        //if (dir.Exists) dir.Delete(true); 
+        //dir.Create();
     }
 
     public static FileInfo[] TryGetFiles(this DirectoryInfo d, string searchPattern)
@@ -153,39 +203,5 @@ public static class FileSystemExtensions
     
     public static FileInfo GetFileInfo(this DirectoryInfo di, string relativePath) => new (Path.Combine(di.FullName, relativePath));
 
-    public static DirectoryInfo GetDirectory(this DirectoryInfo di, string childFolder) => new(Path.Combine(di.FullName, childFolder));
-
-    
-
-    public static void CopyTo(this DirectoryInfo dir, DirectoryInfo destinationDir, bool recursive)
-    {
-        // Source: https://learn.microsoft.com/en-us/dotnet/standard/io/how-to-copy-directories
-
-        // Check if the source directory exists
-        if (!dir.Exists)
-            throw new DirectoryNotFoundException($"Source directory not found: {dir.FullName}");
-
-        // Cache directories before we start copying
-        var dirs = dir.GetDirectories();
-
-        // Create the destination directory
-        destinationDir.Create();
-
-        // Get the files in the source directory and copy to the destination directory
-        foreach (var file in dir.GetFiles())
-        {
-            var targetFilePath = Path.Combine(destinationDir.FullName, file.Name);
-            file.CopyTo(targetFilePath, true);
-        }
-
-        // If recursive and copying subdirectories, recursively call this method
-        if (recursive)
-        {
-            foreach (var subDir in dirs)
-            {
-                var newDestinationDir = new DirectoryInfo(Path.Combine(destinationDir.FullName, subDir.Name));
-                CopyTo(subDir, newDestinationDir, true);
-            }
-        }
-    }
+    public static DirectoryInfo GetSubDirectory(this DirectoryInfo di, string childFolder) => new(Path.Combine(di.FullName, childFolder));
 }
