@@ -97,7 +97,7 @@ public static class ExternalProcess
         process.StartInfo.RedirectStandardOutput = true;
         process.StartInfo.RedirectStandardError = true;
 
-        process.StartInfo.FileName = fileName;
+        process.StartInfo.FileName  = fileName; // TODO use cmd.exe and pass on the exe name in the arguments
         process.StartInfo.Arguments = arguments;
         if (workingDirectory is not null)
             process.StartInfo.WorkingDirectory = workingDirectory.FullName;
@@ -110,7 +110,7 @@ public static class ExternalProcess
         var started = process.Start();
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
-        process.WaitForExit();
+        process.WaitForExit(); // todo refactor for async
 
         if (process.ExitCode != 0)
             throw new ApplicationException($"Error in process execution {fileName} {arguments}: {(string.IsNullOrEmpty(errorMsg) ? output : errorMsg)}");
