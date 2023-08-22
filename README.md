@@ -8,7 +8,7 @@ See https://git-scm.com/book/en/v2/Git-Tools-Submodules
 
 Add a submodule to your main repository:
 ```bash
-git submodule add https://github.com/woutervanranst/utils Arius/WouterVanRanst.Utils
+git submodule add https://github.com/woutervanranst/utils ./WouterVanRanst.Utils
 ```
 
 After adding a submodule, it will be in a "pending" state. You need to initialize and update the submodule to bring in the files:
