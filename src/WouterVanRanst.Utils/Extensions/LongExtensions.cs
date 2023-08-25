@@ -6,7 +6,7 @@ public static class LongExtensions
 
     // TODO Consider the use of https://github.com/omar/ByteSize and/or https://github.com/Humanizr/Humanizer#bytesize
 
-    public static string GetBytesReadable(this long i)
+    public static string GetBytesReadable(this long i, int precision = 3)
     {
         // Determine the suffix and readable value
         string suffix;
@@ -46,7 +46,8 @@ public static class LongExtensions
         readable /= 1024;
 
         // Return formatted number with suffix
-        return readable.ToString("0.### ") + suffix;
+        var format = $"{{0:N{precision}}}";
+        return $"{readable.ToString($"N{precision}")} {suffix}";
     }
 
 
