@@ -1,5 +1,9 @@
 # WouterVanRanst.Utils
 
+## Adding as a NuGet package
+
+[![Version](https://img.shields.io/nuget/v/WouterVanRanst.Utils?logo=nuget)](https://www.nuget.org/packages/WouterVanRanst.Utils)
+
 ## Adding as a Git Submodule
 
 ### In a project
