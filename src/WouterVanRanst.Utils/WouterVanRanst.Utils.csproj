@@ -5,6 +5,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RepositoryUrl>https://github.com/woutervanranst/utils</RepositoryUrl>
+
+		<Authors>Wouter Van Ranst</Authors>
+		<Company>Blue Software</Company>
+		<Copyright>Blue Software</Copyright>
   </PropertyGroup>
 
   <ItemGroup>
