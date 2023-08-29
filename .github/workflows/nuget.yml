@@ -1,0 +1,6 @@
+name: Release NuGet Package
+
+on:
+  push:
+    tags:
+      - 'v*'
