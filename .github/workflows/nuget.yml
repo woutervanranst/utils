@@ -2,5 +2,39 @@ name: Release NuGet Package
 
 on:
   push:
+    paths:
+      - '.github/workflows/nuget.yml'
     tags:
       - 'v*'
+
+jobs:
+  release:
+    name: Release NuGet Package
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: src/WouterVanRanst.Utils
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v3
+
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 7.x
+
+    - name: Get version from tag
+      id: get_version
+      run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/v}
+
+    - name: Build NuGet Package
+      run: dotnet pack --configuration Release /p:Version=${{ steps.get_version.outputs.VERSION }}
+
+    - name: Publish NuGet Package
+      run: dotnet nuget push ./src/WouterVanRanst.Utils/bin/Release/WouterVanRanst.Utils.*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+
+
+    
