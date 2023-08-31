@@ -161,6 +161,12 @@ public static class FileSystemExtensions
         }
     }
 
+    public static void CreateDirectoryIfNotExists(this string filePath)
+    {
+        var directoryPath = Path.GetDirectoryName(filePath);
+        if (directoryPath is not null)
+            Directory.CreateDirectory(directoryPath);
+    }
     public static FileInfo CreateDirectoryIfNotExists(this FileInfo fi)
     {
         fi.Directory.CreateIfNotExists();
