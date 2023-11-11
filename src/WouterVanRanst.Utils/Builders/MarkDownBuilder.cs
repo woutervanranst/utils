@@ -1,11 +1,11 @@
 using System.Data;
 using System.Text;
+using WouterVanRanst.Utils.Extensions;
 
 namespace WouterVanRanst.Utils.Builders;
 
 internal static class MarkDownExtensions
 {
-    public static string ToMarkdownLink(this string text, MkDocsParser.MkDocsLink l) => ToMarkdownLink(text, l.RootedUrl);
     public static string ToMarkdownLink(this string text, string link) => $"[{text}]({link})";
 }
 
