@@ -57,7 +57,7 @@ public static class StringExtensions
         return string.Join(separator, strings);
     }
 
-    public static string ToKebabCase(this string value)
+    public static string ToKebabCase(this string? value)
     {
         // https://gist.github.com/wsloth/5e9f0e83bdd0c3c9341da7d83ffb8dbb
 

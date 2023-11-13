@@ -5,11 +5,11 @@ namespace WouterVanRanst.Utils.Builders;
 
 public class GraphObject
 {
-    public object SourceObject { get; }
-    public string Key          { get; set; }
-    public string Caption        { get; set; }
-    public string Icon         { get; set; }
-    public string Url          { get; set; }
+    public object  SourceObject { get; }
+    public string? Key          { get; set; }
+    public string? Caption      { get; set; }
+    public string? Icon         { get; set; }
+    public string? Url          { get; set; }
 
     public GraphObject(object sourceObject)
     {
@@ -142,24 +142,29 @@ public class MermaidGraph
 
         builder.AppendLine($"graph {direction}");
 
+        // Add Nodes
+        if (graphObjects.Values.Select(GetNestedKey).GroupBy(v => v).Any(v => v.Count() > 1))
+            throw new InvalidOperationException("Duplicate keys found. Please make sure all keys are unique.");
+
         foreach (var obj in graphObjects.Values)
         {
             if (!childGraphObjects.Values.Any(list => list.Contains(obj)))
                 RenderObject(obj, indent);
         }
 
+        // Add Edges
         foreach (var edge in edges)
         {
             var fromKey = GetNestedKey(edge.From);
-            var toKey = GetNestedKey(edge.To);
+            var toKey   = GetNestedKey(edge.To);
             builder.AppendLine($"{fromKey} --> {(string.IsNullOrEmpty(edge.Label) ? "" : $"|{edge.Label}| ")}{toKey}");
         }
 
+        // Add ClassDefs
         foreach (var classDef in classDefs)
-        {
             builder.AppendLine($"classDef {classDef.Key} {classDef.Value}");
-        }
 
+        // Add Styles
         foreach (var obj in graphObjects.Values)
         {
             var nestedKey = GetNestedKey(obj);
@@ -168,6 +173,7 @@ public class MermaidGraph
         }
 
         return builder.ToString();
+
 
         void RenderObject(GraphObject obj, int indentLevel)
         {
@@ -190,7 +196,7 @@ public class MermaidGraph
         }
     }
 
-    private string GetNestedKey(GraphObject obj)
+    private string? GetNestedKey(GraphObject obj)
     {
         var parentObject = childGraphObjects.FirstOrDefault(x => x.Value.Contains(obj)).Key;
         if (parentObject != null)
