@@ -1,27 +1,29 @@
 ﻿using System.Text;
 using WouterVanRanst.Utils.Extensions;
 
-internal class GraphObject
-{
-    public object Key { get; }
-    public string Title { get; set; }
-    public string Icon { get; set; }
-    public string Url { get; set; }
+namespace WouterVanRanst.Utils.Builders;
 
-    public GraphObject(object key)
+public class GraphObject
+{
+    public object SourceObject { get; }
+    public string Key          { get; set; }
+    public string Caption        { get; set; }
+    public string Icon         { get; set; }
+    public string Url          { get; set; }
+
+    public GraphObject(object sourceObject)
     {
-        Key = key;
+        SourceObject = sourceObject;
     }
 }
 
-
-internal interface IGraphObjectHandler
+public interface IGraphObjectHandler
 {
-    void Configure(GraphObject graphObject, object instance);
+    void Configure(GraphObject graphObject, object sourceObject);
 }
 
 
-internal class MermaidGraph
+public class MermaidGraph
 {
     public MermaidGraph(string direction = "LR")
     {
@@ -29,13 +31,12 @@ internal class MermaidGraph
     }
     private readonly string direction;
 
-
-    private readonly Dictionary<object, GraphObject> _graphObjects = new();
-    private readonly Dictionary<object, List<GraphObject>> _childGraphObjects = new();
-    private readonly List<(GraphObject From, GraphObject To, string Label)> _edges = new();
-    private readonly Dictionary<Type, IGraphObjectHandler> _handlers = new();
-    private readonly Dictionary<string, string> _classDefs = new();
-    private readonly Dictionary<object, string> _objectClasses = new();
+    private readonly Dictionary<object, GraphObject>                        graphObjects      = new();
+    private readonly Dictionary<object, List<GraphObject>>                  childGraphObjects = new();
+    private readonly List<(GraphObject From, GraphObject To, string Label)> edges             = new();
+    private readonly Dictionary<Type, IGraphObjectHandler>                  handlers          = new();
+    private readonly Dictionary<string, string>                             classDefs         = new();
+    private readonly Dictionary<object, string>                             objectClasses     = new();
 
     
     public void AddHandler<T, THandler>()
@@ -43,75 +44,65 @@ internal class MermaidGraph
         where THandler : IGraphObjectHandler, new()
     {
         var handler = new THandler();
-        _handlers.Add(typeof(T), handler);
+        handlers.Add(typeof(T), handler);
     }
 
-    internal GraphObject AddObject(object key, object parent = null)
+    public GraphObject AddObject(object sourceObject, object parentObject = null)
     {
-        if (_graphObjects.ContainsKey(key))
-        {
-            return _graphObjects[key];
-        }
+        if (graphObjects.ContainsKey(sourceObject))
+            return graphObjects[sourceObject];
         
-        var graphObject = new GraphObject(key);
-        _graphObjects[key] = graphObject;
+        var graphObject = new GraphObject(sourceObject);
+        graphObjects[sourceObject] = graphObject;
 
-        if (parent != null)
+        if (parentObject != null)
         {
-            if (!_childGraphObjects.ContainsKey(parent))
-            {
-                _childGraphObjects[parent] = new List<GraphObject>();
-            }
-            _childGraphObjects[parent].Add(graphObject);
+            if (!childGraphObjects.ContainsKey(parentObject))
+                childGraphObjects[parentObject] = new List<GraphObject>();
+        
+            childGraphObjects[parentObject].Add(graphObject);
         }
 
-        var handler = GetHandler(key);
+        var handler = GetHandler(sourceObject);
         if (handler is not null)
-        {
-            handler.Configure(graphObject, key);
-        }
+            handler.Configure(graphObject, sourceObject);
         else
-        {
-            throw new InvalidOperationException($"No handler found for type '{key.GetType()}'. Please register a handler for this type.");
-        }
+            throw new InvalidOperationException($"No handler found for type '{sourceObject.GetType()}'. Please register a handler for this type.");
 
         return graphObject;
 
-        IGraphObjectHandler GetHandler(object key)
+
+        IGraphObjectHandler GetHandler(object sourceObject)
         {
-            Type type = key.GetType();
+            var type = sourceObject.GetType();
             while (type != null)
             {
-                if (_handlers.TryGetValue(type, out var handler))
-                {
+                if (handlers.TryGetValue(type, out var handler))
                     return handler;
-                }
 
                 type = type.BaseType;
             }
 
             return null;
         }
-
     }
 
-    internal void AddEdge(object from, object to, string label = null)
+    public void AddEdge(object from, object to, string label = null)
     {
-        var fromObject = _graphObjects[from];
-        var toObject = _graphObjects[to];
+        var fromObject = graphObjects[from];
+        var toObject = graphObjects[to];
 
-        var existingEdge = _edges.FirstOrDefault(e => e.From == fromObject && e.To == toObject);
+        var existingEdge = edges.FirstOrDefault(e => e.From == fromObject && e.To == toObject);
         if (existingEdge != default)
         {
             if (existingEdge.Label != label)
-            {
                 throw new InvalidOperationException($"An edge already exists between the given objects with a different label: {existingEdge.Label}");
-            }
+        
             // If the edge already exists with the same label, do nothing.
             return;
         }
 
-        _edges.Add((fromObject, toObject, label));
+        edges.Add((fromObject, toObject, label));
     }
 
 
@@ -124,33 +115,23 @@ internal class MermaidGraph
        --md-accent-fg-color:  #0000ff;
      */
     // https://www.color-hex.com/color/ff9966
-    internal void AddClassDef(string className, string style)
+    public void AddClassDef(string className, string style)
     {
-        if (!_classDefs.ContainsKey(className))
-        {
-            _classDefs[className] = style;
-        }
+        if (!classDefs.ContainsKey(className))
+            classDefs[className] = style;
         else
-        {
             throw new InvalidOperationException($"A class definition with the name '{className}' already exists.");
-        }
     }
 
-    internal void AddClass(object key, string className)
+    public void AddClass(object sourceObject, string className)
     {
-        if (!_classDefs.ContainsKey(className))
-        {
+        if (!classDefs.ContainsKey(className))
             throw new InvalidOperationException($"No class definition found for '{className}'. Please add a class definition first.");
-        }
 
-        if (!_objectClasses.ContainsKey(key))
-        {
-            _objectClasses[key] = className;
-        }
+        if (!objectClasses.ContainsKey(sourceObject))
+            objectClasses[sourceObject] = className;
         else
-        {
-            throw new InvalidOperationException($"An object with the key '{key}' has already been assigned a class.");
-        }
+            throw new InvalidOperationException($"An object '{sourceObject}' has already been assigned a class.");
     }
 
 
@@ -161,33 +142,29 @@ internal class MermaidGraph
 
         builder.AppendLine($"graph {direction}");
 
-        foreach (var obj in _graphObjects.Values)
+        foreach (var obj in graphObjects.Values)
         {
-            if (!_childGraphObjects.Values.Any(list => list.Contains(obj)))
-            {
+            if (!childGraphObjects.Values.Any(list => list.Contains(obj)))
                 RenderObject(obj, indent);
-            }
         }
 
-        foreach (var edge in _edges)
+        foreach (var edge in edges)
         {
             var fromKey = GetNestedKey(edge.From);
             var toKey = GetNestedKey(edge.To);
             builder.AppendLine($"{fromKey} --> {(string.IsNullOrEmpty(edge.Label) ? "" : $"|{edge.Label}| ")}{toKey}");
         }
 
-        foreach (var classDef in _classDefs)
+        foreach (var classDef in classDefs)
         {
             builder.AppendLine($"classDef {classDef.Key} {classDef.Value}");
         }
 
-        foreach (var obj in _graphObjects.Values)
+        foreach (var obj in graphObjects.Values)
         {
             var nestedKey = GetNestedKey(obj);
-            if (_objectClasses.TryGetValue(obj.Key, out var className))
-            {
+            if (objectClasses.TryGetValue(obj.SourceObject, out var className))
                 builder.AppendLine($"class {nestedKey} {className}");
-            }
         }
 
         return builder.ToString();
@@ -197,30 +174,34 @@ internal class MermaidGraph
             var indent = new string(' ', indentLevel * 2);
             var nestedKey = GetNestedKey(obj);
 
-            if (_childGraphObjects.TryGetValue(obj.Key, out var children))
+            if (childGraphObjects.TryGetValue(obj.SourceObject, out var children))
             {
-                builder.AppendLine($"{indent}subgraph {nestedKey}[\"{(string.IsNullOrEmpty(obj.Icon) ? "" : $"{obj.Icon} ")}{obj.Title}\"]");
+                builder.AppendLine($"{indent}subgraph {nestedKey}[\"{(string.IsNullOrEmpty(obj.Icon) ? "" : $"{obj.Icon} ")}{obj.Caption}\"]");
+                builder.AppendLine($"{indent}{indent}direction {direction}");
                 foreach (var child in children)
-                {
                     RenderObject(child, indentLevel + 1);
-                }
+                
                 builder.AppendLine($"{indent}end");
             }
             else
             {
-                builder.AppendLine($"{indent}{nestedKey}[\"{(string.IsNullOrEmpty(obj.Icon) ? "" : $"{obj.Icon} ")}{obj.Title}\"]");
+                builder.AppendLine($"{indent}{nestedKey}[\"{(string.IsNullOrEmpty(obj.Icon) ? "" : $"{obj.Icon} ")}{obj.Caption}\"]");
             }
         }
     }
 
     private string GetNestedKey(GraphObject obj)
     {
-        var parent = _childGraphObjects.FirstOrDefault(x => x.Value.Contains(obj)).Key;
-        if (parent != null)
+        var parentObject = childGraphObjects.FirstOrDefault(x => x.Value.Contains(obj)).Key;
+        if (parentObject != null)
         {
-            return $"{_graphObjects[parent].Title.ToKebabCase()}.{obj.Title.ToKebabCase()}";
+            var parentKey = graphObjects[parentObject].Key;
+;            return $"{parentKey}.{obj.Key}";
         }
-        return obj.Title.ToKebabCase();
+        else
+        {
+            return obj.Key;
+        }
     }
 }
 
