@@ -11,12 +11,18 @@ public static class MermaidImageUrlGenerator
 
         var compressedBytes = Deflate(Encoding.UTF8.GetBytes(mermaidSource));
         var encodedOutput = Convert.ToBase64String(compressedBytes).Replace('+', '-').Replace('/', '_');
-        return $"https://kroki.io/mermaid/svg/{encodedOutput}";
+        
+        //if (format == ".svg")
+        return $"https://kroki.io/mermaid/{format.ToLower()}/{encodedOutput}";
+        //else if (format == ".png")
+        //    return $"https://mermaid.ink/img/pako:{encodedOutput}"; // Mermaid renders the emojis correcly -- pako: https://stackoverflow.com/questions/55680317/javascript-gzip-and-btoa-and-decompress-with-c-sharp
+        //else
+        //    throw new ArgumentException($"Format {format} not supported");
     }
 
-    public static async Task DownloadImageAsync(string mermaidSource, string targetFile, string format = "svg")
+    public static async Task DownloadImageAsync(string mermaidSource, string targetFile)
     {
-        var url = GenerateImageUrl(mermaidSource, format);
+        var url = GenerateImageUrl(mermaidSource, new FileInfo(targetFile).Extension);
         using var client = new HttpClient();
         var response = await client.GetAsync(url);
         await using var stream = await response.Content.ReadAsStreamAsync();
