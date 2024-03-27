@@ -1,5 +1,4 @@
 ﻿using System.Text;
-using WouterVanRanst.Utils.Extensions;
 
 namespace WouterVanRanst.Utils.Builders;
 
@@ -23,20 +22,18 @@ public interface IGraphObjectHandler
 }
 
 
-public class MermaidGraph
+/// <summary>
+/// A MermaidGraph
+/// </summary>
+/// <param name="direction">LR or TD</param>
+public class MermaidGraph(string direction = "LR")
 {
-    public MermaidGraph(string direction = "LR")
-    {
-        this.direction = direction;
-    }
-    private readonly string direction;
-
-    private readonly Dictionary<object, GraphObject>                        graphObjects      = new();
-    private readonly Dictionary<object, List<GraphObject>>                  childGraphObjects = new();
-    private readonly List<(GraphObject From, GraphObject To, string Label)> edges             = new();
-    private readonly Dictionary<Type, IGraphObjectHandler>                  handlers          = new();
-    private readonly Dictionary<string, string>                             classDefs         = new();
-    private readonly Dictionary<object, string>                             objectClasses     = new();
+    private readonly Dictionary<object, GraphObject>                        graphObjects      = [];
+    private readonly Dictionary<object, List<GraphObject>>                  childGraphObjects = [];
+    private readonly List<(GraphObject From, GraphObject To, string Label)> edges             = [];
+    private readonly Dictionary<Type, IGraphObjectHandler>                  handlers          = [];
+    private readonly Dictionary<string, string>                             classDefs         = [];
+    private readonly Dictionary<object, string>                             objectClasses     = [];
 
     
     public void AddHandler<T, THandler>()
@@ -47,32 +44,35 @@ public class MermaidGraph
         handlers.Add(typeof(T), handler);
     }
 
-    public GraphObject AddObject(object sourceObject, object parentObject = null)
+    public void AddObject(object domainObject, object? parentDomainObject = null)
+    //public GraphObject AddObject(object sourceObject, object? parentObject = null) // commented this: the graphobject shouldnt be publicly used
     {
-        if (graphObjects.ContainsKey(sourceObject))
-            return graphObjects[sourceObject];
+        if (graphObjects.ContainsKey(domainObject))
+            //return graphObjects[sourceObject];
+            return;
         
-        var graphObject = new GraphObject(sourceObject);
-        graphObjects[sourceObject] = graphObject;
+        var graphObject = new GraphObject(domainObject);
+        graphObjects[domainObject] = graphObject;
 
-        if (parentObject != null)
+        if (parentDomainObject != null)
         {
-            if (!childGraphObjects.ContainsKey(parentObject))
-                childGraphObjects[parentObject] = new List<GraphObject>();
+            if (!childGraphObjects.ContainsKey(parentDomainObject))
+                childGraphObjects[parentDomainObject] = new List<GraphObject>();
         
-            childGraphObjects[parentObject].Add(graphObject);
+            childGraphObjects[parentDomainObject].Add(graphObject);
         }
 
-        var handler = GetHandler(sourceObject);
+        var handler = GetHandler(domainObject);
         if (handler is not null)
-            handler.Configure(graphObject, sourceObject);
+            handler.Configure(graphObject, domainObject);
         else
-            throw new InvalidOperationException($"No handler found for type '{sourceObject.GetType()}'. Please register a handler for this type.");
+            throw new InvalidOperationException($"No handler found for type '{domainObject.GetType()}'. Please register a handler for this type.");
 
-        return graphObject;
+        //return graphObject;
+        return;
 
 
-        IGraphObjectHandler GetHandler(object sourceObject)
+        IGraphObjectHandler? GetHandler(object sourceObject)
         {
             var type = sourceObject.GetType();
             while (type != null)
