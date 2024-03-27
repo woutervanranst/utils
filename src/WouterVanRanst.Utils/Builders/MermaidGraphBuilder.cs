@@ -22,19 +22,37 @@ public interface IGraphObjectHandler
 }
 
 
-/// <summary>
-/// A MermaidGraph
-/// </summary>
-/// <param name="direction">LR or TD</param>
-public class MermaidGraph(string direction = "LR")
+public class MermaidGraph
 {
+    /// <summary>
+    /// A MermaidGraph
+    /// </summary>
+    /// <param name="direction">LR or TD</param>
+    public MermaidGraph(string direction = "LR")
+    {
+        graphDirection    = direction;
+        subgraphDirection = direction;
+    }
+
+    /// <summary>
+    /// A MermaidGraph
+    /// </summary>
+    /// <param name="graphDirection">LR or TD</param>
+    /// <param name="subgraphDirection">LR or TD</param>
+    public MermaidGraph(string graphDirection, string subgraphDirection)
+    {
+        this.graphDirection    = graphDirection;
+        this.subgraphDirection = subgraphDirection;
+    }
+
     private readonly Dictionary<object, GraphObject>                        graphObjects      = [];
     private readonly Dictionary<object, List<GraphObject>>                  childGraphObjects = [];
     private readonly List<(GraphObject From, GraphObject To, string Label)> edges             = [];
     private readonly Dictionary<Type, IGraphObjectHandler>                  handlers          = [];
     private readonly Dictionary<string, string>                             classDefs         = [];
     private readonly Dictionary<object, string>                             objectClasses     = [];
-
+    private readonly string                                                 graphDirection;
+    private readonly string                                                 subgraphDirection;
     
     public void AddHandler<T, THandler>()
         where T : class
@@ -72,9 +90,9 @@ public class MermaidGraph(string direction = "LR")
         return;
 
 
-        IGraphObjectHandler? GetHandler(object sourceObject)
+        IGraphObjectHandler? GetHandler(object sourceDomainObject)
         {
-            var type = sourceObject.GetType();
+            var type = sourceDomainObject.GetType();
             while (type != null)
             {
                 if (handlers.TryGetValue(type, out var handler))
@@ -87,10 +105,10 @@ public class MermaidGraph(string direction = "LR")
         }
     }
 
-    public void AddEdge(object from, object to, string label = null)
+    public void AddEdge(object fromDomainObject, object toDomainObject, string label = null)
     {
-        var fromObject = graphObjects[from];
-        var toObject = graphObjects[to];
+        var fromObject = graphObjects[fromDomainObject];
+        var toObject = graphObjects[toDomainObject];
 
         var existingEdge = edges.FirstOrDefault(e => e.From == fromObject && e.To == toObject);
         if (existingEdge != default)
@@ -123,15 +141,20 @@ public class MermaidGraph(string direction = "LR")
             throw new InvalidOperationException($"A class definition with the name '{className}' already exists.");
     }
 
-    public void AddClass(object sourceObject, string className)
+    public void AddClass(object domainObject, string className)
     {
         if (!classDefs.ContainsKey(className))
             throw new InvalidOperationException($"No class definition found for '{className}'. Please add a class definition first.");
 
-        if (!objectClasses.ContainsKey(sourceObject))
-            objectClasses[sourceObject] = className;
+        if (!objectClasses.ContainsKey(domainObject))
+            objectClasses[domainObject] = className;
         else
-            throw new InvalidOperationException($"An object '{sourceObject}' has already been assigned a class.");
+            throw new InvalidOperationException($"An object '{domainObject}' has already been assigned a class.");
+    }
+
+    public IEnumerable<object> FindDomainObjects(string key)
+    {
+        return graphObjects.Values.Where(o => o.Key == key).Select(o => o.SourceObject);
     }
 
 
@@ -140,7 +163,7 @@ public class MermaidGraph(string direction = "LR")
         var builder = new StringBuilder();
         var indent = 0;
 
-        builder.AppendLine($"graph {direction}");
+        builder.AppendLine($"graph {graphDirection}");
 
         // Add Nodes
         if (graphObjects.Values.Select(GetNestedKey).GroupBy(v => v).Any(v => v.Count() > 1))
@@ -183,7 +206,7 @@ public class MermaidGraph(string direction = "LR")
             if (childGraphObjects.TryGetValue(obj.SourceObject, out var children))
             {
                 builder.AppendLine($"{indent}subgraph {nestedKey}[\"{(string.IsNullOrEmpty(obj.Icon) ? "" : $"{obj.Icon} ")}{obj.Caption}\"]");
-                builder.AppendLine($"{indent}{indent}direction {direction}");
+                builder.AppendLine($"{indent}{indent}direction {subgraphDirection}");
                 foreach (var child in children)
                     RenderObject(child, indentLevel + 1);
                 
@@ -210,4 +233,3 @@ public class MermaidGraph(string direction = "LR")
         }
     }
 }
-
