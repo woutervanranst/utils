@@ -19,5 +19,20 @@
         {
             return !sequence.Any();
         }
+
+        public static bool Multiple<TSource>(this IEnumerable<TSource> source)
+        {
+            // Analogous to Any() but with a check for multiple elements
+
+            int count;
+            return !source.TryGetNonEnumeratedCount<TSource>(out count) ? WithEnumerator(source) : count > 1;
+
+#nullable disable
+            static bool WithEnumerator(IEnumerable<TSource> source)
+            {
+                using (IEnumerator<TSource> enumerator = source.GetEnumerator())
+                    return enumerator.MoveNext();
+            }
+        }
     }
 }
