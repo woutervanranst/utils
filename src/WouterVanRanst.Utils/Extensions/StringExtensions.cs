@@ -50,10 +50,21 @@ public static class StringExtensions
     /// <param name="strings">Array of strings</param>
     /// <param name="separator">Optionally the separator. If not specified: Environment.NewLine</param>
     /// <returns></returns>
-    public static string Join(this IEnumerable<string> strings, string separator = null)
+    public static string Join(this IEnumerable<string> strings, string? separator = null)
     {
         separator ??= Environment.NewLine;
 
+        return string.Join(separator, strings);
+    }
+
+    /// <summary>
+    /// Joins an array of strings
+    /// </summary>
+    /// <param name="strings">Array of strings</param>
+    /// <param name="separator">The separator</param>
+    /// <returns></returns>
+    public static string Join(this IEnumerable<string> strings, char separator)
+    {
         return string.Join(separator, strings);
     }
 
