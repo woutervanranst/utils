@@ -212,4 +212,10 @@ public static class FileSystemExtensions
     public static DirectoryInfo GetSubDirectory(this DirectoryInfo di, string childFolder) => new(Path.Combine(di.FullName, childFolder));
 
     public static string GetRelativePath(this DirectoryInfo relativeTo, DirectoryInfo path) => Path.GetRelativePath(relativeTo.FullName, path.FullName);
+
+
+    public static string GetFileFullName(this DirectoryInfo directoryInfo, string fileName)
+    {
+        return Path.Combine(directoryInfo.FullName, fileName);
+    }
 }
