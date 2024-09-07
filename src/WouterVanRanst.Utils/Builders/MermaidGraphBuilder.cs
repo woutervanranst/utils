@@ -39,7 +39,7 @@ public class MermaidGraph
     /// </summary>
     /// <param name="graphDirection">LR or TD</param>
     /// <param name="subgraphDirection">LR or TD</param>
-    public MermaidGraph(string graphDirection, string subgraphDirection)
+    public MermaidGraph(string graphDirection, string? subgraphDirection)
     {
         this.graphDirection    = graphDirection;
         this.subgraphDirection = subgraphDirection;
@@ -52,7 +52,7 @@ public class MermaidGraph
     private readonly Dictionary<string, string>                             classDefs         = [];
     private readonly Dictionary<object, string>                             objectClasses     = [];
     private readonly string                                                 graphDirection;
-    private readonly string                                                 subgraphDirection;
+    private readonly string?                                                subgraphDirection;
     
     public void AddHandler<T, THandler>()
         where T : class
@@ -206,7 +206,8 @@ public class MermaidGraph
             if (childGraphObjects.TryGetValue(obj.SourceObject, out var children))
             {
                 builder.AppendLine($"{indent}subgraph {nestedKey}[\"{(string.IsNullOrEmpty(obj.Icon) ? "" : $"{obj.Icon} ")}{obj.Caption}\"]");
-                builder.AppendLine($"{indent}{indent}direction {subgraphDirection}");
+                if (subgraphDirection is not null)
+                    builder.AppendLine($"{indent}{indent}direction {subgraphDirection}");
                 foreach (var child in children)
                     RenderObject(child, indentLevel + 1);
                 
