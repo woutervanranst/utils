@@ -9,6 +9,7 @@ public static class FileExtensions
     ///// <returns></returns>
     //public static long Length(this string path)
     //{
+    // NOTE THIS IS NOT EFFECIENT !! -- USE FILEINFO
     //    // Return the length of a file, without using FileInfo and with minimal allocations
     //    using var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read);
     //    return fileStream.Length;

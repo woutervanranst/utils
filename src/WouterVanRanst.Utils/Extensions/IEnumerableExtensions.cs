@@ -34,4 +34,24 @@ public static class IEnumerableExtensions
                 return enumerator.MoveNext();
         }
     }
+
+
+    /// <summary>Determines whether two sequences are equal by comparing the elements by using the default equality comparer for their type.</summary>
+    /// <param name="ordered">True to compare sequences in order; false to ignore the order.</param>
+    public static bool SequenceEqual<T>(this IEnumerable<T> first, IEnumerable<T> second, bool ordered)
+    {
+        if (first is null || second is null)
+        {
+            return false;
+        }
+
+        if (ordered)
+        {
+            return first.SequenceEqual(second);
+        }
+        else
+        {
+            return first.OrderBy(x => x).SequenceEqual(second.OrderBy(x => x));
+        }
+    }
 }
