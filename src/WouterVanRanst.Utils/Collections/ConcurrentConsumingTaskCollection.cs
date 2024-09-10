@@ -72,7 +72,12 @@ public sealed class ConcurrentConsumingTaskCollection<T>
             if (taskSet.Any())
             {
                 // Wait for either a task from the set to complete or the TaskCompletionSource to complete
-                completedTask = await Task.WhenAny(taskSet.Append(addingCompletedTcs.Task));
+                await Task.WhenAny(taskSet.Append(addingCompletedTcs.Task));
+
+                if (taskSet.Any())
+                    completedTask = await Task.WhenAny(taskSet);
+                else
+                    completedTask = addingCompletedTcs.Task;
             }
             else
             {
