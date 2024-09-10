@@ -96,7 +96,10 @@ public sealed class ConcurrentConsumingTaskCollection<T>
             // If it's a task from the set that completed, process it
             if (completedTask is Task<T> completedResult && taskSet.TryRemove(completedResult)) // NOTE: the TryRemove here is instrumental, as it ensures that in case a competing thread has removed it first, it will only be yielded once
             {
-                yield return await completedResult;
+                if (cancellationToken.IsCancellationRequested)
+                    yield break;
+                else
+                    yield return await completedResult;
             }
 
             // Optionally exit if cancellation is requested
