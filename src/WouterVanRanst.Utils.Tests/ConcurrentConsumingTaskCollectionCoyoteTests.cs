@@ -8,35 +8,6 @@ using Xunit.Abstractions;
 
 namespace WouterVanRanst.Utils.Tests;
 
-public class Test
-{
-    ITestOutputHelper Output;
-
-    public Test(ITestOutputHelper output)
-    {
-        this.Output = output;
-    }
-
-
-    [Fact]
-    public void RunCoyoteTest()
-    {
-        var config = Configuration.Create();
-        TestingEngine engine = TestingEngine.Create(config, CoyoteTestMethod);
-        engine.Run();
-        var report = engine.TestReport;
-        Output.WriteLine("Coyote found {0} bug.", report.NumOfFoundBugs);
-        Assert.True(report.NumOfFoundBugs == 0, $"Coyote found {report.NumOfFoundBugs} bug(s).");
-    }
-
-    private async Task CoyoteTestMethod()
-    {
-        // This is running as a Coyote test.
-        await Task.Delay(10);
-        //Specification.Assert(false, "This test failed!");
-    }
-}
-
 public class ConcurrentConsumingTaskCollectionCoyoteTests
 {
     ITestOutputHelper Output;
@@ -53,6 +24,8 @@ public class ConcurrentConsumingTaskCollectionCoyoteTests
     {
         var configuration = Configuration.Create()
                 .WithReproducibleTrace(File.ReadAllText("C:\\Users\\WouterVanRanst\\Desktop\\mytest.trace"))
+                //.WithDeadlockTimeout(10000)
+                //.WithVerbosityEnabled()
             ;
         var engine = TestingEngine.Create(configuration, this.TestSingleProducerSingleConsumer);
         engine.Run();
@@ -60,10 +33,10 @@ public class ConcurrentConsumingTaskCollectionCoyoteTests
         Output.WriteLine("Coyote found {0} bug.", report.NumOfFoundBugs);
 
         engine.TryEmitReports("C:\\Users\\WouterVanRanst\\Desktop", "mytest", out var filenames);
-        foreach (var item in filenames)
-        {
-            Output.WriteLine("See log file: {0}", item);
-        }
+        //foreach (var item in filenames)
+        //{
+        //    Output.WriteLine("See log file: {0}", item);
+        //}
 
         Assert.Equal(0, engine.TestReport.NumOfFoundBugs);
     }
@@ -79,31 +52,35 @@ public class ConcurrentConsumingTaskCollectionCoyoteTests
     //        Assert.Equal(0, engine.TestReport.NumOfFoundBugs);
     //    }
 
-    private void TestSingleProducerSingleConsumer(IActorRuntime runtime)
+    private async Task TestSingleProducerSingleConsumer(IActorRuntime runtime)
     {
         var taskQueue = new ConcurrentConsumingTaskCollection<string>();
         var actualOrder = new List<string>();
         var expectedOrder = new List<string> { "Task2", "Task3", "Task1" };  // Expected order based on task delays
 
         // Producer: Add tasks to the queue
-        Task.Run(() =>
+        var t1 = Task.Run(async () =>
         {
             taskQueue.Add(SimulateTask("Task1", 3000));  // Long-running task
             taskQueue.Add(SimulateTask("Task2", 1000));  // Short-running task
             taskQueue.Add(SimulateTask("Task3", 2000));  // Medium-running task
+            //await Task.Delay(5000);
             taskQueue.CompleteAdding();
-        }).Wait();
+        });
 
         // Consumer: Consume tasks in completion order and store the result
-        Task.Run(async () =>
+        var t2 = Task.Run(async () =>
         {
             await foreach (var result in taskQueue.GetConsumingEnumerable())
             {
                 actualOrder.Add(result);
                 Output.WriteLine(result);
             }
-        }).Wait();
+        });
 
+        await Task.WhenAll(t1, t2);
+        Output.WriteLine(t2.Status.ToString());
+        
         
         // Assert that the tasks were processed in the correct order
         expectedOrder.SequenceEqual(actualOrder).Should().BeTrue();

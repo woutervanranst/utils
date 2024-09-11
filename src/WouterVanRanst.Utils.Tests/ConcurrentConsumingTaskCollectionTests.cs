@@ -9,9 +9,9 @@ public class ConcurrentConsumingTaskCollectionTests
     {
         // Arrange
         var taskQueue = new ConcurrentConsumingTaskCollection<string>();
-        var t1 = SimulateTask("Task1", 3000);
-        var t2 = SimulateTask("Task2", 1000);
-        var t3 = SimulateTask("Task3", 2000);
+        var t1 = SimulateTask("Task1", 300);
+        var t2 = SimulateTask("Task2", 100);
+        var t3 = SimulateTask("Task3", 200);
 
         taskQueue.Add(t1);
         taskQueue.Add(t2);
@@ -34,7 +34,7 @@ public class ConcurrentConsumingTaskCollectionTests
     {
         // Arrange
         var taskQueue = new ConcurrentConsumingTaskCollection<string>();
-        var t1 = SimulateTask("Task1", 1000);
+        var t1 = SimulateTask("Task1", 100);
 
         taskQueue.Add(t1);
         taskQueue.CompleteAdding();
@@ -59,7 +59,7 @@ public class ConcurrentConsumingTaskCollectionTests
         taskQueue.CompleteAdding();
 
         // Act & Assert
-        Assert.Throws<InvalidOperationException>(() => taskQueue.Add(SimulateTask("Task1", 1000)));
+        Assert.Throws<InvalidOperationException>(() => taskQueue.Add(SimulateTask("Task1", 100)));
     }
 
     [Fact]
@@ -85,15 +85,15 @@ public class ConcurrentConsumingTaskCollectionTests
     {
         // Arrange
         var taskQueue = new ConcurrentConsumingTaskCollection<string>();
-        var t1 = SimulateTask("Task1", 2000);
-        var t2 = SimulateTask("Task2", 4000);
+        var t1 = SimulateTask("Task1", 200);
+        var t2 = SimulateTask("Task2", 400);
 
         taskQueue.Add(t1);
         taskQueue.Add(t2);
         taskQueue.CompleteAdding();
 
         var cts = new CancellationTokenSource();
-        cts.CancelAfter(2500); // Cancel after 2.5 seconds
+        cts.CancelAfter(250); // Cancel after 0.25 seconds
 
         // Act
         var processedTasks = new List<string>();
@@ -115,11 +115,11 @@ public class ConcurrentConsumingTaskCollectionTests
 
         var producer = Task.Run(async () =>
         {
-            taskQueue.Add(SimulateTask("Task1", 3000));
+            taskQueue.Add(SimulateTask("Task1", 300));
             await Task.Delay(500);
-            taskQueue.Add(SimulateTask("Task2", 1000));
+            taskQueue.Add(SimulateTask("Task2", 100));
             await Task.Delay(500);
-            taskQueue.Add(SimulateTask("Task3", 2000));
+            taskQueue.Add(SimulateTask("Task3", 200));
             taskQueue.CompleteAdding();
         });
 
@@ -159,9 +159,9 @@ public class ConcurrentConsumingTaskCollectionTests
 
         var producer = Task.Run(async () =>
         {
-            taskQueue.Add(SimulateTask("Task1", 1000)); // Task1 added first
+            taskQueue.Add(SimulateTask("Task1", 100)); // Task1 added first
             await Task.Delay(1500); // Simulate delay where the task set becomes temporarily empty
-            taskQueue.Add(SimulateTask("Task2", 1000)); // Task2 added after some time
+            taskQueue.Add(SimulateTask("Task2", 100)); // Task2 added after some time
             taskQueue.CompleteAdding(); // Complete adding tasks
         });
 
