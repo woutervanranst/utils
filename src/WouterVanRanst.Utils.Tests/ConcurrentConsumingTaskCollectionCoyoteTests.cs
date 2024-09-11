@@ -73,8 +73,8 @@ public class ConcurrentConsumingTaskCollectionCoyoteTests
         {
             await foreach (var result in taskQueue.GetConsumingEnumerable())
             {
-                actualOrder.Add(result);
-                Output.WriteLine(result);
+                actualOrder.Add(await result);
+                Output.WriteLine(await result);
             }
         });
 

@@ -73,7 +73,7 @@ public class ConcurrentConsumingTaskCollectionTests
         var processedTasks = new List<string>();
         await foreach (var result in taskQueue.GetConsumingEnumerable())
         {
-            processedTasks.Add(result);
+            processedTasks.Add(await result);
         }
 
         // Assert
@@ -97,9 +97,16 @@ public class ConcurrentConsumingTaskCollectionTests
 
         // Act
         var processedTasks = new List<string>();
-        await foreach (var result in taskQueue.GetConsumingEnumerable(cts.Token))
+        try
         {
-            processedTasks.Add(await result);
+            await foreach (var result in taskQueue.GetConsumingEnumerable(cts.Token))
+            {
+                processedTasks.Add(await result);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected due to cancellation; ignore.
         }
 
         // Assert

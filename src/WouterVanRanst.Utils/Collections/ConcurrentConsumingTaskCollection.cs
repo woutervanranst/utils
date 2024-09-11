@@ -14,25 +14,38 @@ public sealed class ConcurrentConsumingTaskCollection<T>
     private readonly Channel<Task<T>> channel = Channel.CreateUnbounded<Task<T>>(new UnboundedChannelOptions { AllowSynchronousContinuations = false, SingleReader = false, SingleWriter = false });
 
     private bool addingCompleted = false;
+    private int activeTaskCount = 0;
 
     public void Add(Task<T> task)
     {
         if (addingCompleted)
             throw new InvalidOperationException("Cannot add tasks after completion.");
 
-        task.ContinueWith(t =>
+        Interlocked.Increment(ref activeTaskCount);
+
+        task.ContinueWith(async t =>
         {
-            channel.Writer.TryWrite(t);
+            await channel.Writer.WriteAsync(t);
+
+            // Decrement active task count and complete the writer if done
+            if (Interlocked.Decrement(ref activeTaskCount) == 0 && addingCompleted)
+            {
+                channel.Writer.Complete();
+            }
         }, TaskContinuationOptions.ExecuteSynchronously);
     }
 
     public void CompleteAdding()
     {
         addingCompleted = true;
-        channel.Writer.Complete();
+
+        if (Interlocked.CompareExchange(ref activeTaskCount, 0, 0) == 0)
+        {
+            channel.Writer.Complete();
+        }
     }
 
-    public bool IsCompleted => addingCompleted;
+    public bool IsCompleted => addingCompleted && activeTaskCount == 0 && channel.Reader.Completion.IsCompleted;
 
     public async IAsyncEnumerable<Task<T>> GetConsumingEnumerable([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
