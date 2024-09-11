@@ -22,7 +22,7 @@ public class ConcurrentConsumingTaskCollectionTests
         var processedTasks = new List<string>();
         await foreach (var result in taskQueue.GetConsumingEnumerable())
         {
-            processedTasks.Add(result);
+            processedTasks.Add(await result);
         }
 
         // Assert
@@ -43,7 +43,7 @@ public class ConcurrentConsumingTaskCollectionTests
         var processedTasks = new List<string>();
         await foreach (var result in taskQueue.GetConsumingEnumerable())
         {
-            processedTasks.Add(result);
+            processedTasks.Add(await result);
         }
 
         // Assert
@@ -99,7 +99,7 @@ public class ConcurrentConsumingTaskCollectionTests
         var processedTasks = new List<string>();
         await foreach (var result in taskQueue.GetConsumingEnumerable(cts.Token))
         {
-            processedTasks.Add(result);
+            processedTasks.Add(await result);
         }
 
         // Assert
@@ -128,7 +128,7 @@ public class ConcurrentConsumingTaskCollectionTests
         {
             await foreach (var result in taskQueue.GetConsumingEnumerable())
             {
-                processedTasks.Add(result);
+                processedTasks.Add(await result);
             }
         });
 
@@ -136,7 +136,7 @@ public class ConcurrentConsumingTaskCollectionTests
         {
             await foreach (var result in taskQueue.GetConsumingEnumerable())
             {
-                processedTasks.Add(result);
+                processedTasks.Add(await result);
             }
         });
 
@@ -170,7 +170,7 @@ public class ConcurrentConsumingTaskCollectionTests
         // Act
         await foreach (var result in taskQueue.GetConsumingEnumerable())
         {
-            processedTasks.Add(result);
+            processedTasks.Add(await result);
         }
 
         // Assert
