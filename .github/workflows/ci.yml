@@ -1,13 +1,13 @@
-name: Release NuGet Package
+name: CI Build and Test
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - '**' # Run on every branch
 
 jobs:
-  release:
-    name: Release NuGet Package
+  ci:
+    name: CI Build and Test
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -29,21 +29,18 @@ jobs:
     - name: Add Coyote tool to PATH
       run: echo "${HOME}/.dotnet/tools" >> $GITHUB_PATH
 
-    - name: Get version from tag
-      id: get_version
-      run: echo "VERSION=${GITHUB_REF/refs\/tags\/v/}" >> $GITHUB_OUTPUT
-
     - name: Restore NuGet Packages
       run: dotnet restore
 
     - name: Build Solution
-      run: dotnet build --configuration Release /p:Version=${{ steps.get_version.outputs.VERSION }}
+      run: dotnet build --configuration Release
 
     - name: Run Unit Tests
       run: dotnet test --configuration Release --no-build --verbosity normal
 
-    - name: Build NuGet Package
-      run: dotnet pack WouterVanRanst.Utils/WouterVanRanst.Utils.csproj --configuration Release /p:Version=${{ steps.get_version.outputs.VERSION }}
+    # - name: Run Coyote Tests
+    #   run: coyote test --recursive
 
-    - name: Publish NuGet Package
-      run: dotnet nuget push WouterVanRanst.Utils/bin/Release/WouterVanRanst.Utils.*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+    - name: Build NuGet Package
+      run: dotnet pack WouterVanRanst.Utils/WouterVanRanst.Utils.csproj --configuration Release
+

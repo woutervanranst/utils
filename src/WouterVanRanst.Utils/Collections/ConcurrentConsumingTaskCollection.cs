@@ -1,5 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
-using ConcurrentCollections;
+using System.Threading.Channels;
 
 namespace WouterVanRanst.Utils.Collections;
 
@@ -11,94 +11,45 @@ namespace WouterVanRanst.Utils.Collections;
 /// <typeparam name="T">The type of the result returned by the tasks.</typeparam>
 public sealed class ConcurrentConsumingTaskCollection<T>
 {
-    /// <summary>
-    /// A thread-safe hash set that stores tasks to be processed.
-    /// </summary>
-    private readonly ConcurrentHashSet<Task<T>> taskSet = [];
+    private readonly Channel<Task<T>> channel = Channel.CreateUnbounded<Task<T>>(new UnboundedChannelOptions { AllowSynchronousContinuations = false, SingleReader = false, SingleWriter = false });
 
-    /// <summary>
-    /// A TaskCompletionSource that signals when no more tasks will be added.
-    /// </summary>
-    private readonly TaskCompletionSource addingCompletedTcs = new();
+    private bool addingCompleted = false;
+    private int activeTaskCount = 0;
 
-    /// <summary>
-    /// Adds a task to the collection.
-    /// Tasks can be added concurrently, but once <see cref="CompleteAdding"/> is called, no more tasks can be added.
-    /// </summary>
-    /// <param name="task">The task to be added to the collection.</param>
-    /// <exception cref="InvalidOperationException">Thrown if the task is added after adding is completed.</exception>
     public void Add(Task<T> task)
     {
-        if (addingCompletedTcs.Task.IsCompleted)
+        if (addingCompleted)
+            throw new InvalidOperationException("Cannot add tasks after completion.");
+
+        Interlocked.Increment(ref activeTaskCount);
+
+        task.ContinueWith(async t =>
         {
-            throw new InvalidOperationException("Cannot add tasks after adding is completed.");
-        }
-        taskSet.Add(task);  // Add the task in a thread-safe manner
+            await channel.Writer.WriteAsync(t);
+
+            // Decrement active task count and complete the writer if done
+            if (Interlocked.Decrement(ref activeTaskCount) == 0 && addingCompleted)
+            {
+                channel.Writer.Complete();
+            }
+        }, TaskContinuationOptions.ExecuteSynchronously);
     }
 
-    /// <summary>
-    /// Marks the collection as complete, signaling that no more tasks will be added.
-    /// Once this method is called, no additional tasks can be added to the collection.
-    /// </summary>
     public void CompleteAdding()
     {
-        addingCompletedTcs.TrySetResult();  // Signal that no more tasks will be added
+        addingCompleted = true;
+
+        if (Interlocked.CompareExchange(ref activeTaskCount, 0, 0) == 0)
+        {
+            channel.Writer.Complete();
+        }
     }
 
-    /// <summary>
-    /// Determines whether the collection has completed processing.
-    /// The collection is considered complete when no more tasks will be added 
-    /// and all tasks have been consumed.
-    /// </summary>
-    public bool IsCompleted => addingCompletedTcs.Task.IsCompleted && taskSet.IsEmpty;
+    public bool IsCompleted => addingCompleted && activeTaskCount == 0 && channel.Reader.Completion.IsCompleted;
 
-    /// <summary>
-    /// Consumes tasks from the collection as they complete.
-    /// The tasks are returned in the order of their completion, regardless of the order they were added.
-    /// The method stops consuming once all tasks have been processed and no more tasks will be added.
-    /// </summary>
-    /// <param name="cancellationToken">A cancellation token that can be used to stop consuming tasks.</param>
-    /// <returns>An asynchronous enumerable of task results.</returns>
-    public async IAsyncEnumerable<T> GetConsumingEnumerable([EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<Task<T>> GetConsumingEnumerable([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        while (!IsCompleted)
-        {
-            // If there are no more tasks being added and the set is empty, we stop processing
-            if (taskSet.IsEmpty && addingCompletedTcs.Task.IsCompleted)
-                yield break;
-
-            Task completedTask;
-
-            if (taskSet.Any())
-            {
-                // Wait for either a task from the set to complete or the TaskCompletionSource to complete
-                completedTask = await Task.WhenAny(taskSet.Append(addingCompletedTcs.Task));
-            }
-            else
-            {
-                // If no tasks are in the set, check if new tasks might still be added
-                if (addingCompletedTcs.Task.IsCompleted)
-                {
-                    // No tasks and no more will be added, stop processing
-                    yield break;
-                }
-
-                // No tasks in the set, but more might be added, yield and continue to the next iteration
-                await Task.Yield();
-                continue;
-            }
-
-            // If it's a task from the set that completed, process it
-            if (completedTask is Task<T> completedResult && taskSet.TryRemove(completedResult)) // NOTE: the TryRemove here is instrumental, as it ensures that in case a competing thread has removed it first, it will only be yielded once
-            {
-                yield return await completedResult;
-            }
-
-            // Optionally exit if cancellation is requested
-            if (cancellationToken.IsCancellationRequested)
-            {
-                yield break;
-            }
-        }
+        await foreach (var t in channel.Reader.ReadAllAsync(cancellationToken))
+            yield return t;
     }
 }
