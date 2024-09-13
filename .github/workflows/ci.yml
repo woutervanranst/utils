@@ -24,7 +24,7 @@ jobs:
         dotnet-version: 8.x
 
     - name: Install Coyote tool locally
-      run: dotnet tool install Microsoft.Coyote --tool-path ./tools
+      run: dotnet tool install --global Microsoft.Coyote.CLI
 
     - name: Add Coyote tool to PATH
       run: echo "${{ github.workspace }}/tools" >> $GITHUB_PATH
