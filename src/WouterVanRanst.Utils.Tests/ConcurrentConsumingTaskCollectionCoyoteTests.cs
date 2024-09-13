@@ -25,7 +25,7 @@ public class ConcurrentConsumingTaskCollectionCoyoteTests
 
         var configuration = Configuration.Create()
                 .WithReproducibleTrace(File.ReadAllText("C:\\Users\\WouterVanRanst\\Desktop\\mytest.trace"))
-                .WithDeadlockTimeout(10000)
+                //.WithDeadlockTimeout(10000)
                 //.WithVerbosityEnabled()
             ;
         var engine = TestingEngine.Create(configuration, this.TestSingleProducerSingleConsumer);

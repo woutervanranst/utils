@@ -27,7 +27,7 @@ jobs:
       run: dotnet tool install --global Microsoft.Coyote.CLI
 
     - name: Add Coyote tool to PATH
-      run: echo "${{ github.workspace }}/tools" >> $GITHUB_PATH
+      run: echo "${HOME}/.dotnet/tools" >> $GITHUB_PATH
 
     - name: Restore NuGet Packages
       run: dotnet restore
