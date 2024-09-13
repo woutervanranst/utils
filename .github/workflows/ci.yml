@@ -23,11 +23,11 @@ jobs:
       with:
         dotnet-version: 8.x
 
-    - name: Install Coyote tool
-      run: dotnet tool install -g Microsoft.Coyote
+    - name: Install Coyote tool locally
+      run: dotnet tool install Microsoft.Coyote --tool-path ./tools
 
     - name: Add Coyote tool to PATH
-      run: echo "${HOME}/.dotnet/tools" >> $GITHUB_PATH
+      run: echo "${{ github.workspace }}/tools" >> $GITHUB_PATH
 
     - name: Restore NuGet Packages
       run: dotnet restore
