@@ -23,6 +23,12 @@ jobs:
       with:
         dotnet-version: 8.x
 
+    - name: Install Coyote tool locally
+      run: dotnet tool install --global Microsoft.Coyote.CLI
+
+    - name: Add Coyote tool to PATH
+      run: echo "${HOME}/.dotnet/tools" >> $GITHUB_PATH
+
     - name: Get version from tag
       id: get_version
       run: echo "VERSION=${GITHUB_REF/refs\/tags\/v/}" >> $GITHUB_OUTPUT
