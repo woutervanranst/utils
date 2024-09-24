@@ -10,13 +10,30 @@ public static class FileInfoExtensions
     /// Copy file to the target directory preserving the original filename.
     /// </summary>
     public static FileInfo CopyTo(this FileInfo source, DirectoryInfo targetDir)
-        => source.CopyTo(Path.Combine(targetDir.FullName, source.Name));
+    {
+        targetDir.Create();
+        return source.CopyTo(Path.Combine(targetDir.FullName, source.Name));
+    }
 
     /// <summary>
     /// Copy file to the target directory with the given name.
     /// </summary>
     public static FileInfo CopyTo(this FileInfo source, DirectoryInfo targetDir, string targetName)
-        => source.CopyTo(Path.Combine(targetDir.FullName, targetName));
+    {
+        var destFileName = Path.Combine(targetDir.FullName, targetName);
+        Directory.CreateDirectory(Path.GetDirectoryName(destFileName));
+        return source.CopyTo(destFileName);
+    }
+
+    /// <summary>
+    /// Copy file to the target directory with the given name.
+    /// </summary>
+    public static FileInfo CopyTo(this FileInfo source, string targetDir, string targetName)
+    {
+        var destFileName = Path.Combine(targetDir, targetName);
+        Directory.CreateDirectory(Path.GetDirectoryName(destFileName));
+        return source.CopyTo(destFileName);
+    }
 
     /// <summary>
     /// Copy file to the target directory in the same relative path as vs the source root.
