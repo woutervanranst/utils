@@ -43,13 +43,6 @@ jobs:
     - name: Run Unit Tests
       run: dotnet test --configuration Release --no-build --verbosity normal --logger "junit;LogFilePath=../results/test-results.xml"
 
-    - name: kak
-      run: |
-        pwd
-        ls
-        cd results
-        ls
-
     # - name: Run Coyote Tests
     #   run: coyote test --recursive
 
@@ -57,6 +50,6 @@ jobs:
       uses: dorny/test-reporter@v1
       if: always()
       with:
-        name: test-results
+        name: Test Report
         path: "**/test-results.xml"
         reporter: java-junit

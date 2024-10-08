@@ -40,14 +40,14 @@ jobs:
       run: dotnet build --configuration Release /p:Version=${{ steps.get_version.outputs.VERSION }}
 
     - name: Run Unit Tests
-      run: dotnet test --configuration Release --no-build --verbosity --logger "junit;LogFilePath=../results/test-results.xml"
+      run: dotnet test --configuration Release --no-build --verbosity normal --logger "junit;LogFilePath=../results/test-results.xml"
 
     - name: Test Report
       uses: dorny/test-reporter@v1
       if: always()
       with:
-        name: test-results
-        path: "../results/**/*.xml"
+        name: Test Report
+        path: "**/test-results.xml"
         reporter: java-junit
 
     - name: Build NuGet Package
