@@ -36,7 +36,14 @@ jobs:
       run: dotnet build --configuration Release
 
     - name: Run Unit Tests
-      run: dotnet test --configuration Release --no-build --verbosity normal --logger "junit;LogFilePath=/results/test-results.xml"
+      run: dotnet test --configuration Release --no-build --verbosity normal --logger "junit;LogFilePath=results/test-results.xml"
+
+    - name: kak
+      run: |
+        pwd
+        ls
+        cd results
+        ls
 
     # - name: Run Coyote Tests
     #   run: coyote test --recursive
@@ -46,5 +53,5 @@ jobs:
       if: always()
       with:
         name: test-results
-        path: "/results/*.xml"
+        path: "results/*.xml"
         reporter: java-junit
