@@ -40,7 +40,7 @@ jobs:
       run: dotnet build --configuration Release /p:Version=${{ steps.get_version.outputs.VERSION }}
 
     - name: Run Unit Tests
-      run: dotnet test --configuration Release --no-build --verbosity normal
+      run: dotnet test --configuration Release --no-build --verbosity --logger "junit;LogFilePath=../results/test-results.xml"
 
     - name: Build NuGet Package
       run: dotnet pack WouterVanRanst.Utils/WouterVanRanst.Utils.csproj --configuration Release /p:Version=${{ steps.get_version.outputs.VERSION }}
