@@ -41,7 +41,7 @@ jobs:
       run: dotnet build --configuration Release
 
     - name: Run Unit Tests
-      run: dotnet test --configuration Release --no-build --verbosity normal --logger "junit;LogFilePath=../results/test-results.xml" /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=../results/coverage/
+      run: dotnet test --configuration Release --no-build --verbosity normal --logger "junit;LogFilePath=../results/test-results.xml" --collect:"XPlat Code Coverage"
 
     # - name: Run Coyote Tests
     #   run: coyote test --recursive
