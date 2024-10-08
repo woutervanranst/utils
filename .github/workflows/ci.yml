@@ -41,6 +41,13 @@ jobs:
     # - name: Run Coyote Tests
     #   run: coyote test --recursive
 
+    - name: Test Report
+            uses: dorny/test-reporter@v1
+            if: always()
+            with:
+              name: test-results
+              path: "done/results/**/*.xml"
+              reporter: java-junit
+
     - name: Build NuGet Package
       run: dotnet pack WouterVanRanst.Utils/WouterVanRanst.Utils.csproj --configuration Release
-
