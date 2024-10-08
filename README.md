@@ -1,5 +1,7 @@
 # WouterVanRanst.Utils
 
+[![codecov](https://codecov.io/gh/woutervanranst/utils/graph/badge.svg?token=3HMG36Q3L2)](https://codecov.io/gh/woutervanranst/utils)
+
 ## Adding as a NuGet package
 
 [![Version](https://img.shields.io/nuget/v/WouterVanRanst.Utils?logo=nuget)](https://www.nuget.org/packages/WouterVanRanst.Utils)
