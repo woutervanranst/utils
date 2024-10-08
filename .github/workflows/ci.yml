@@ -41,7 +41,7 @@ jobs:
       run: dotnet build --configuration Release
 
     - name: Run Unit Tests
-      run: dotnet test --configuration Release --no-build --verbosity normal --logger "junit;LogFilePath=../results/test-results.xml"
+      run: dotnet test --configuration Release --no-build --verbosity normal --logger "junit;LogFilePath=../results/test-results.xml" /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=../results/coverage/
 
     # - name: Run Coyote Tests
     #   run: coyote test --recursive
@@ -53,3 +53,9 @@ jobs:
         name: Test Report
         path: "**/test-results.xml"
         reporter: java-junit
+
+    - name: Upload Coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        files: "../results/coverage/coverage.cobertura.xml"
+        fail_ci_if_error: true
