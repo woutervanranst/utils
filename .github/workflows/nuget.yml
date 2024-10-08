@@ -40,7 +40,7 @@ jobs:
       run: dotnet build --configuration Release /p:Version=${{ steps.get_version.outputs.VERSION }}
 
     - name: Run Unit Tests
-      run: dotnet test --configuration Release --no-build --verbosity normal --logger "junit;LogFilePath=../results/test-results.xml"
+      run: dotnet test --configuration Release --no-build --verbosity normal --logger "junit;LogFilePath=../results/test-results.xml" --collect:"XPlat Code Coverage"
 
     - name: Test Report
       uses: dorny/test-reporter@v1
@@ -50,6 +50,13 @@ jobs:
         path: "**/test-results.xml"
         reporter: java-junit
 
+    - name: Upload Coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        files: "**/coverage.cobertura.xml"
+        token: ${{ secrets.CODECOV_TOKEN }}
+        fail_ci_if_error: true
+        
     - name: Build NuGet Package
       run: dotnet pack WouterVanRanst.Utils/WouterVanRanst.Utils.csproj --configuration Release /p:Version=${{ steps.get_version.outputs.VERSION }}
 
