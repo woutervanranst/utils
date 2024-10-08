@@ -5,6 +5,11 @@ on:
     branches:
       - '**' # Run on every branch
 
+permissions:
+  contents: read
+  actions: read
+  checks: write
+
 jobs:
   ci:
     name: CI Build and Test
