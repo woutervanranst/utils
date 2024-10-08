@@ -19,7 +19,7 @@ public sealed class TaskExtensionsTests
         var t = TaskExtensions.WhenAllWithCancellationAsync(new[] { task1, task2 }, cancellationTokenSource);
 
         // Cancel after a short delay
-        cancellationTokenSource.CancelAfter(100);
+        cancellationTokenSource.CancelAfter(10);
 
         // Assert
         await FluentActions
@@ -38,7 +38,7 @@ public sealed class TaskExtensionsTests
         var cancellationTokenSource = new CancellationTokenSource();
         var cancellationToken = cancellationTokenSource.Token;
 
-        var task1 = CreateFaultedTask("Task 1 failed", 500);
+        var task1 = CreateFaultedTask("Task 1 failed", 50);
         var task2 = CreateLongRunningTask(cancellationToken);
 
         // Act
@@ -92,8 +92,8 @@ public sealed class TaskExtensionsTests
         var cancellationTokenSource = new CancellationTokenSource();
         var cancellationToken = cancellationTokenSource.Token;
 
-        var task1 = CreateFaultedTask("Task 1 failed", 500);
-        var task2 = CreateFaultedTask("Task 2 failed", 700);
+        var task1 = CreateFaultedTask("Task 1 failed", 50);
+        var task2 = CreateFaultedTask("Task 2 failed", 70);
         var task3 = CreateLongRunningTask(cancellationToken);
 
         // Act
@@ -141,7 +141,7 @@ public sealed class TaskExtensionsTests
         var cancellationTokenSource = new CancellationTokenSource();
         var cancellationToken = cancellationTokenSource.Token;
 
-        var task1 = CreateFaultedTask("Task 1 failed", 500);
+        var task1 = CreateFaultedTask("Task 1 failed", 50);
         var task2 = CreateLongRunningTask(cancellationToken);
 
         // Act: Trigger external cancellation after 500ms
@@ -155,8 +155,32 @@ public sealed class TaskExtensionsTests
         cancellationToken.IsCancellationRequested.Should().BeTrue(); // Ensure cancellation was requested
     }
 
+    [Fact]
+    public async Task ExecuteTasksWithCancellationAsync_ShouldThrowAggregateException_WhenMultipleTasksFault()
+    {
+        // Arrange
+        var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
 
+        // Create tasks: Two faulted tasks and one long-running task
+        var task1 = CreateFaultedTask("Task 1 failed", 0);  
+        var task2 = CreateFaultedTask("Task 2 failed", 0); 
+        var task3 = CreateLongRunningTask(cancellationToken);  // Long-running task
 
+        // Act
+        Func<Task> act = async () => await TaskExtensions.WhenAllWithCancellationAsync([task1, task2, task3], cancellationTokenSource);
+
+        // Assert: Expect an AggregateException with both task failures
+        var exception = await act.Should().ThrowAsync<AggregateException>();
+        exception.Which.InnerExceptions.Should().Contain(e => e.Message == "Task 1 failed");
+        exception.Which.InnerExceptions.Should().Contain(e => e.Message == "Task 2 failed");
+
+        // Verify that the long-running task was canceled
+        task3.Status.Should().Be(TaskStatus.Canceled);
+        cancellationTokenSource.IsCancellationRequested.Should().BeTrue();
+    }
+
+    
     private static Task CreateLongRunningTask(CancellationToken cancellationToken)
     {
         return Task.Run(async () =>
@@ -173,7 +197,7 @@ public sealed class TaskExtensionsTests
         }, cancellationToken);
     }
 
-    private static Task CreateFaultedTask(string exceptionMessage, int delayMs = 500)
+    private static Task CreateFaultedTask(string exceptionMessage, int delayMs)
     {
         return Task.Run(async () =>
         {

@@ -2,12 +2,16 @@
 
 public static class TaskExtensions
 {
-    public static async Task WhenAllWithCancellationAsync(IEnumerable<Task> tasks, CancellationTokenSource globalCancellationTokenSource)
+    public static async Task WhenAllWithCancellationAsync(IEnumerable<Task> tasks, CancellationTokenSource cancellationTokenSource)
     {
+        tasks = tasks.ToArray();
+
         if (!tasks.Any())
         {
             return;
         }
+
+        Task? t = default;
 
         try
         {
@@ -19,19 +23,24 @@ public static class TaskExtensions
                     if (t.IsFaulted)
                     {
                         Console.WriteLine("A task has faulted, cancelling all other tasks.");
-                        globalCancellationTokenSource.Cancel();
+                        cancellationTokenSource.Cancel();
                     }
                 }, TaskContinuationOptions.OnlyOnFaulted);
             }
 
             // Await the completion of all tasks, letting cancellation propagate as necessary
-            await Task.WhenAll(tasks);
+            t = Task.WhenAll(tasks);
+            await t;
         }
         catch
         {
             // If any task faults, ensure cancellation is triggered
-            globalCancellationTokenSource.Cancel();
-            throw;
+            await cancellationTokenSource.CancelAsync();
+
+            if (t?.Exception is not null)
+                throw t.Exception.Flatten();
+            else
+                throw;
         }
     }
 }
