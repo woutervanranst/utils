@@ -43,13 +43,13 @@ jobs:
       run: dotnet test --configuration Release --no-build --verbosity --logger "junit;LogFilePath=../results/test-results.xml"
 
     - name: Test Report
-            uses: dorny/test-reporter@v1
-            if: always()
-            with:
-              name: test-results
-              path: "done/results/**/*.xml"
-              reporter: java-junit
-              
+      uses: dorny/test-reporter@v1
+      if: always()
+      with:
+        name: test-results
+        path: "done/results/**/*.xml"
+        reporter: java-junit
+
     - name: Build NuGet Package
       run: dotnet pack WouterVanRanst.Utils/WouterVanRanst.Utils.csproj --configuration Release /p:Version=${{ steps.get_version.outputs.VERSION }}
 
