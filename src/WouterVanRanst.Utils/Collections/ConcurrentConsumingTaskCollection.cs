@@ -11,6 +11,8 @@ namespace WouterVanRanst.Utils.Collections;
 /// <typeparam name="T">The type of the result returned by the tasks.</typeparam>
 public sealed class ConcurrentConsumingTaskCollection<T>
 {
+    /* TODO: See for a better approach https://devblogs.microsoft.com/pfxteam/processing-tasks-as-they-complete/, https://github.com/StephenCleary/AsyncEx/blob/0361015459938f2eb8f3c1ad1021d19ee01c93a4/src/Nito.AsyncEx.Tasks/TaskExtensions.cs#L184
+     */
     private readonly Channel<Task<T>> channel = Channel.CreateUnbounded<Task<T>>(new UnboundedChannelOptions { AllowSynchronousContinuations = false, SingleReader = false, SingleWriter = false });
 
     private bool addingCompleted = false;
