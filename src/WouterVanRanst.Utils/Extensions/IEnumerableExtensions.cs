@@ -54,4 +54,14 @@ public static class IEnumerableExtensions
             return first.OrderBy(x => x).SequenceEqual(second.OrderBy(x => x));
         }
     }
+
+    public static IEnumerable<T> DuplicatesBy<T, TKey>(this IEnumerable<T> collection, Func<T, TKey> keySelector)
+    {
+        ArgumentNullException.ThrowIfNull(collection, nameof(collection));
+
+        return collection
+            .GroupBy(keySelector)
+            .Where(group => group.Count() > 1)
+            .SelectMany(group => group);
+    }
 }
