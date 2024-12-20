@@ -14,9 +14,9 @@ public static class StringExtensions
         return str[..Math.Min(str.Length, length)];
     }
 
-    public static string RemovePrefix(this string s, string prefix)
+    public static string RemovePrefix(this string s, string prefix, StringComparison comparisonType = StringComparison.InvariantCultureIgnoreCase)
     {
-        if (s.StartsWith(prefix))
+        if (s.StartsWith(prefix, comparisonType))
             return s[prefix.Length..];
 
         return s;
