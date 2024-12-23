@@ -24,14 +24,13 @@ public static class IEnumerableExtensions
     {
         // Analogous to Any() but with a check for multiple elements
 
-        int count;
-        return !source.TryGetNonEnumeratedCount<TSource>(out count) ? WithEnumerator(source) : count > 1;
+        return !source.TryGetNonEnumeratedCount<TSource>(out var count) ? WithEnumerator(source) : count > 1;
 
 #nullable disable
         static bool WithEnumerator(IEnumerable<TSource> source)
         {
-            using (IEnumerator<TSource> enumerator = source.GetEnumerator())
-                return enumerator.MoveNext();
+            using var enumerator = source.GetEnumerator();
+            return enumerator.MoveNext();
         }
     }
 
@@ -55,6 +54,15 @@ public static class IEnumerableExtensions
         }
     }
 
+
+    /// <summary>
+    /// Returns a sequence of elements from the input collection that have duplicates based on the specified key selector.
+    /// </summary>
+    /// <typeparam name="T">The type of elements in the collection.</typeparam>
+    /// <typeparam name="TKey">The type of the key used for comparison.</typeparam>
+    /// <param name="collection">The input collection.</param>
+    /// <param name="keySelector">A function to extract the key for comparison.</param>
+    /// <returns>A sequence of elements that have duplicates based on the specified key selector.</returns>
     public static IEnumerable<T> DuplicatesBy<T, TKey>(this IEnumerable<T> collection, Func<T, TKey> keySelector)
     {
         ArgumentNullException.ThrowIfNull(collection, nameof(collection));
