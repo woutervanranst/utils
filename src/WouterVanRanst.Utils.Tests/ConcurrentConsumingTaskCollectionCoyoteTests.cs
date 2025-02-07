@@ -1,3 +1,187 @@
+using Microsoft.Coyote;
+using Microsoft.Coyote.Actors;
+using Microsoft.Coyote.SystematicTesting;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using WouterVanRanst.Utils.Collections;
+
+public class TaskCompletionBufferCoyoteTests
+{
+    /// <summary>
+    /// Tests concurrent addition of tasks and completion signaling to ensure
+    /// all tasks are processed and no invalid operations occur.
+    /// </summary>
+    [Test]
+    public static async Task TestConcurrentAddAndCompleteAdding()
+    {
+        var configuration = Configuration.Create().WithTestingIterations(100);
+        var engine = TestingEngine.Create(configuration, async (runtime) =>
+        {
+            var buffer = new TaskCompletionBuffer<int>();
+            var pendingTasks = new List<TaskCompletionSource<int>>();
+            int numTasks = 10;
+
+            // Add tasks concurrently
+            var producer = Task.Run(() =>
+            {
+                for (int i = 0; i < numTasks; i++)
+                {
+                    var tcs = new TaskCompletionSource<int>();
+                    lock (buffer)
+                    {
+                        buffer.Add(tcs.Task);
+                        pendingTasks.Add(tcs);
+                    }
+                }
+            });
+
+            // Signal completion concurrently
+            var completer = Task.Run(() => buffer.CompleteAdding());
+
+            await Task.WhenAll(producer, completer);
+
+            // Complete all tasks
+            foreach (var tcs in pendingTasks)
+            {
+                tcs.SetResult(42);
+            }
+
+            // Collect results
+            var results = new ConcurrentBag<int>();
+            await foreach (var task in buffer.GetConsumingEnumerable())
+            {
+                results.Add(await task);
+            }
+
+            Assert.Equal(results.Count, numTasks);
+        });
+
+        engine.Run();
+        var testResult = engine.TestReport;
+
+        Assert.Equal(0, testResult.NumOfFoundBugs);
+    }
+
+    ///// <summary>
+    ///// Verifies that tasks added after CompleteAdding is called throw exceptions
+    ///// and that existing tasks are processed correctly.
+    ///// </summary>
+    //[Test]
+    //public static async Task TestAddAfterCompleteAddingThrows()
+    //{
+    //    await RunCoyoteTest(async (buffer) =>
+    //    {
+    //        buffer.CompleteAdding();
+
+    //        bool exceptionThrown = false;
+    //        try
+    //        {
+    //            buffer.Add(Task.FromResult(1));
+    //        }
+    //        catch (InvalidOperationException)
+    //        {
+    //            exceptionThrown = true;
+    //        }
+
+    //        Assert(exceptionThrown, "Add after CompleteAdding should throw");
+    //    });
+    //}
+
+    ///// <summary>
+    ///// Ensures all tasks are processed exactly once even with multiple consumers.
+    ///// </summary>
+    //[Test]
+    //public static async Task TestMultipleConsumersProcessAllTasks()
+    //{
+    //    await RunCoyoteTest(async (buffer) =>
+    //    {
+    //        int numTasks = 20;
+    //        var pendingTasks = new List<TaskCompletionSource<int>>();
+
+    //        for (int i = 0; i < numTasks; i++)
+    //        {
+    //            var tcs = new TaskCompletionSource<int>();
+    //            buffer.Add(tcs.Task);
+    //            pendingTasks.Add(tcs);
+    //        }
+
+    //        buffer.CompleteAdding();
+
+    //        var results = new ConcurrentBag<int>();
+    //        var consumer1 = ConsumeAsync(buffer, results);
+    //        var consumer2 = ConsumeAsync(buffer, results);
+
+    //        // Complete tasks in random order
+    //        var random = new Random();
+    //        while (pendingTasks.Count > 0)
+    //        {
+    //            int index = random.Next(pendingTasks.Count);
+    //            pendingTasks[index].SetResult(pendingTasks.Count);
+    //            pendingTasks.RemoveAt(index);
+    //        }
+
+    //        await Task.WhenAll(consumer1, consumer2);
+
+    //        Assert(results.Count == numTasks, $"Expected {numTasks} results, got {results.Count}");
+    //    });
+    //}
+
+    ///// <summary>
+    ///// Validates that the buffer handles the completion order correctly when
+    ///// tasks complete before being awaited.
+    ///// </summary>
+    //[Test]
+    //public static async Task TestCompletionOrderWithControlledTasks()
+    //{
+    //    await RunCoyoteTest(async (buffer) =>
+    //    {
+    //        var tcs1 = new TaskCompletionSource<int>();
+    //        var tcs2 = new TaskCompletionSource<int>();
+
+    //        buffer.Add(tcs2.Task); // This task completes first
+    //        buffer.Add(tcs1.Task);
+
+    //        tcs2.SetResult(2);
+    //        tcs1.SetResult(1);
+    //        buffer.CompleteAdding();
+
+    //        var results = new List<int>();
+    //        await foreach (var task in buffer.GetConsumingEnumerable())
+    //        {
+    //            results.Add(await task);
+    //        }
+
+    //        Assert(results.Count == 2);
+    //        Assert(results[0] == 2, "First completed task should be result 2");
+    //        Assert(results[1] == 1, "Second completed task should be result 1");
+    //    });
+    //}
+
+    //// Helper methods
+    //private static async Task RunCoyoteTest(Func<TaskCompletionBuffer<int>, Task> testFunc)
+    //{
+    //    var config = Configuration.Create().WithTestingIterations(100);
+    //    var testResult = await TestingEngine.Execute(config, async (runtime) =>
+    //    {
+    //        var buffer = new TaskCompletionBuffer<int>();
+    //        await testFunc(buffer);
+    //    });
+
+    //    Assert(testResult.NumOfFoundBugs == 0);
+    //}
+
+    //private static async Task ConsumeAsync(TaskCompletionBuffer<int> buffer, ConcurrentBag<int> results)
+    //{
+    //    await foreach (var task in buffer.GetConsumingEnumerable())
+    //    {
+    //        results.Add(await task);
+    //    }
+    //}
+}
+
+
 //using FluentAssertions;
 //using Microsoft.Coyote;
 //using Microsoft.Coyote.Actors;
