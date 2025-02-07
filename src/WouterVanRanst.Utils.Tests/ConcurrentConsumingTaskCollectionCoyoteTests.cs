@@ -66,30 +66,30 @@ public class TaskCompletionBufferCoyoteTests
         Assert.Equal(0, testResult.NumOfFoundBugs);
     }
 
-    ///// <summary>
-    ///// Verifies that tasks added after CompleteAdding is called throw exceptions
-    ///// and that existing tasks are processed correctly.
-    ///// </summary>
-    //[Test]
-    //public static async Task TestAddAfterCompleteAddingThrows()
-    //{
-    //    await RunCoyoteTest(async (buffer) =>
-    //    {
-    //        buffer.CompleteAdding();
+    /// <summary>
+    /// Verifies that tasks added after CompleteAdding is called throw exceptions
+    /// and that existing tasks are processed correctly.
+    /// </summary>
+    [Test]
+    public static async Task TestAddAfterCompleteAddingThrows()
+    {
+        await RunCoyoteTest(async (buffer) =>
+        {
+            buffer.CompleteAdding();
 
-    //        bool exceptionThrown = false;
-    //        try
-    //        {
-    //            buffer.Add(Task.FromResult(1));
-    //        }
-    //        catch (InvalidOperationException)
-    //        {
-    //            exceptionThrown = true;
-    //        }
+            bool exceptionThrown = false;
+            try
+            {
+                buffer.Add(Task.FromResult(1));
+            }
+            catch (InvalidOperationException)
+            {
+                exceptionThrown = true;
+            }
 
-    //        Assert(exceptionThrown, "Add after CompleteAdding should throw");
-    //    });
-    //}
+            Assert(exceptionThrown, "Add after CompleteAdding should throw");
+        });
+    }
 
     ///// <summary>
     ///// Ensures all tasks are processed exactly once even with multiple consumers.
@@ -161,18 +161,21 @@ public class TaskCompletionBufferCoyoteTests
     //    });
     //}
 
-    //// Helper methods
-    //private static async Task RunCoyoteTest(Func<TaskCompletionBuffer<int>, Task> testFunc)
-    //{
-    //    var config = Configuration.Create().WithTestingIterations(100);
-    //    var testResult = await TestingEngine.Execute(config, async (runtime) =>
-    //    {
-    //        var buffer = new TaskCompletionBuffer<int>();
-    //        await testFunc(buffer);
-    //    });
+    // Helper methods
+    private static async Task RunCoyoteTest(Func<TaskCompletionBuffer<int>, Task> testFunc)
+    {
+        var config = Configuration.Create().WithTestingIterations(100);
+        var engine = TestingEngine.Create(config, async (runtime) =>
+        {
+            var buffer = new TaskCompletionBuffer<int>();
+            await testFunc(buffer);
+        });
 
-    //    Assert(testResult.NumOfFoundBugs == 0);
-    //}
+        engine.Run();
+        var testResult = engine.TestReport;
+
+        Assert.Equal(0, testResult.NumOfFoundBugs);
+    }
 
     //private static async Task ConsumeAsync(TaskCompletionBuffer<int> buffer, ConcurrentBag<int> results)
     //{
