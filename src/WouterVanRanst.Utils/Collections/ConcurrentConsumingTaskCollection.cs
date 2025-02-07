@@ -1,57 +1,63 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+
 
 namespace WouterVanRanst.Utils.Collections;
 
-/// <summary>
-/// A thread-safe collection of tasks that are consumed as they complete.
-/// Tasks can be added concurrently by multiple producers and consumed by multiple consumers.
-/// The collection processes tasks in the order they complete, regardless of the order they were added.
-/// </summary>
-/// <typeparam name="T">The type of the result returned by the tasks.</typeparam>
-public sealed class ConcurrentConsumingTaskCollection<T>
+public class TaskCollector<T>
 {
-    /* TODO: See for a better approach https://devblogs.microsoft.com/pfxteam/processing-tasks-as-they-complete/, https://github.com/StephenCleary/AsyncEx/blob/0361015459938f2eb8f3c1ad1021d19ee01c93a4/src/Nito.AsyncEx.Tasks/TaskExtensions.cs#L184
-     */
-    private readonly Channel<Task<T>> channel = Channel.CreateUnbounded<Task<T>>(new UnboundedChannelOptions { AllowSynchronousContinuations = false, SingleReader = false, SingleWriter = false });
-
-    private bool addingCompleted = false;
-    private int activeTaskCount = 0;
+    private readonly Channel<Task<T>> _taskChannel = Channel.CreateUnbounded<Task<T>>();
+    private readonly CancellationTokenSource _completionSignal = new();
+    private bool _isAddingCompleted;
 
     public void Add(Task<T> task)
     {
-        if (addingCompleted)
-            throw new InvalidOperationException("Cannot add tasks after completion.");
+        if (_isAddingCompleted)
+            throw new InvalidOperationException("Adding tasks has been marked as complete.");
 
-        Interlocked.Increment(ref activeTaskCount);
-
-        task.ContinueWith(async t =>
-        {
-            await channel.Writer.WriteAsync(t);
-
-            // Decrement active task count and complete the writer if done
-            if (Interlocked.Decrement(ref activeTaskCount) == 0 && addingCompleted)
-            {
-                channel.Writer.Complete();
-            }
-        }, TaskContinuationOptions.ExecuteSynchronously);
+        _taskChannel.Writer.TryWrite(task);
     }
 
     public void CompleteAdding()
     {
-        addingCompleted = true;
-
-        if (Interlocked.CompareExchange(ref activeTaskCount, 0, 0) == 0)
-        {
-            channel.Writer.Complete();
-        }
+        _isAddingCompleted = true;
+        _taskChannel.Writer.Complete();
+        _completionSignal.Cancel(); // Signal to exit enumeration when done
     }
 
-    public bool IsCompleted => addingCompleted && activeTaskCount == 0 && channel.Reader.Completion.IsCompleted;
-
-    public async IAsyncEnumerable<Task<T>> GetConsumingEnumerable([EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<Task<T>> GetCompletedTasks(
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        await foreach (var t in channel.Reader.ReadAllAsync(cancellationToken))
-            yield return t;
+        var pendingTasks = new List<Task<T>>();
+        var combinedToken = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken, _completionSignal.Token).Token;
+
+        var reader = _taskChannel.Reader;
+
+        while (!combinedToken.IsCancellationRequested || pendingTasks.Count > 0)
+        {
+            // Check for newly added tasks
+            while (reader.TryRead(out var task))
+                pendingTasks.Add(task);
+
+            if (pendingTasks.Count == 0)
+            {
+                if (_isAddingCompleted) break; // No more tasks coming
+
+                // Wait for new tasks or completion signal
+                await reader.WaitToReadAsync(combinedToken).ConfigureAwait(false);
+                continue;
+            }
+
+            // Wait for any task to complete or new tasks to arrive
+            var completedTask = await Task.WhenAny([..pendingTasks, reader.WaitToReadAsync(combinedToken).AsTask()]).ConfigureAwait(false);
+
+            if (completedTask is Task<T> resultTask)
+            {
+                pendingTasks.Remove(resultTask);
+                yield return resultTask;
+            }
+        }
     }
 }
