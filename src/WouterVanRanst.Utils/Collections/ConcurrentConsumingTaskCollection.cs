@@ -5,7 +5,7 @@ using System.Threading.Channels;
 
 namespace WouterVanRanst.Utils.Collections;
 
-public class TaskCollector<T>
+public class TaskCompletionBuffer<T>
 {
     private readonly Channel<Task<T>> _taskChannel = Channel.CreateUnbounded<Task<T>>();
     private readonly CancellationTokenSource _completionSignal = new();
@@ -26,7 +26,7 @@ public class TaskCollector<T>
         _completionSignal.Cancel(); // Signal to exit enumeration when done
     }
 
-    public async IAsyncEnumerable<Task<T>> GetCompletedTasks(
+    public async IAsyncEnumerable<Task<T>> GetConsumingEnumerable(
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var pendingTasks = new List<Task<T>>();
