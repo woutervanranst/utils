@@ -187,6 +187,136 @@ public class TaskCompletionBufferTests
     }
 
 
+
+
+    [Fact]
+    public async Task AddTaskAfterEnumeratorStarts()
+    {
+        var buffer = new TaskCompletionBuffer<string>();
+        var task1 = SimulateTask("Task1", 200);
+        buffer.Add(task1);
+
+        await using var enumerator = buffer.GetConsumingEnumerable().GetAsyncEnumerator();
+        var moveNextTask = enumerator.MoveNextAsync();
+
+        var task2 = SimulateTask("Task2", 100);
+        buffer.Add(task2);
+        buffer.CompleteAdding();
+
+        Assert.True(await moveNextTask);
+        Assert.Equal("Task2", await enumerator.Current);
+
+        Assert.True(await enumerator.MoveNextAsync());
+        Assert.Equal("Task1", await enumerator.Current);
+
+        Assert.False(await enumerator.MoveNextAsync());
+    }
+
+    [Fact]
+    public async Task AllTasksCanceled()
+    {
+        var buffer = new TaskCompletionBuffer<string>();
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var task1 = Task.FromCanceled<string>(cts.Token);
+        buffer.Add(task1);
+        buffer.CompleteAdding();
+
+        var processedTasks = new List<string>();
+        await foreach (var task in buffer.GetConsumingEnumerable())
+        {
+            try
+            {
+                processedTasks.Add(await task);
+            }
+            catch (TaskCanceledException)
+            {
+                processedTasks.Add("Canceled");
+            }
+        }
+
+        Assert.Equal(new[] { "Canceled" }, processedTasks);
+    }
+
+    [Fact]
+    public async Task MultipleProducersAddingConcurrently()
+    {
+        var buffer = new TaskCompletionBuffer<string>();
+        var producer1 = Task.Run(() =>
+        {
+            buffer.Add(SimulateTask("P1T1", 200));
+            buffer.Add(SimulateTask("P1T2", 100));
+        });
+
+        var producer2 = Task.Run(() =>
+        {
+            buffer.Add(SimulateTask("P2T1", 150));
+            buffer.Add(SimulateTask("P2T2", 50));
+        });
+
+        await Task.WhenAll(producer1, producer2);
+        buffer.CompleteAdding();
+
+        var processedTasks = new List<string>();
+        await foreach (var task in buffer.GetConsumingEnumerable())
+        {
+            processedTasks.Add(await task);
+        }
+
+        Assert.Equal(new[] { "P2T2", "P1T2", "P2T1", "P1T1" }, processedTasks);
+    }
+
+    [Fact]
+    public async Task AddCompletedTaskImmediatelyProcessed()
+    {
+        var buffer = new TaskCompletionBuffer<string>();
+        var task = Task.FromResult("Immediate");
+        buffer.Add(task);
+        buffer.CompleteAdding();
+
+        var processedTasks = new List<string>();
+        await foreach (var t in buffer.GetConsumingEnumerable())
+        {
+            processedTasks.Add(await t);
+        }
+
+        Assert.Equal(new[] { "Immediate" }, processedTasks);
+    }
+
+    [Fact]
+    public void CompleteAddingIsIdempotent()
+    {
+        var buffer = new TaskCompletionBuffer<string>();
+        buffer.CompleteAdding();
+        buffer.CompleteAdding(); // Should not throw
+    }
+
+    [Fact]
+    public async Task EnumerateWithoutCompleteAddingBlocks()
+    {
+        var buffer = new TaskCompletionBuffer<string>();
+        var task = SimulateTask("Task", 100);
+        buffer.Add(task);
+
+        var processedTasks = new List<string>();
+        var cts = new CancellationTokenSource(500); // Cancel after 500ms if it blocks indefinitely
+
+        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+        {
+            await foreach (var t in buffer.GetConsumingEnumerable(cts.Token))
+            {
+                processedTasks.Add(await t);
+            }
+        });
+
+        Assert.Single(processedTasks); // The task should have completed within 500ms
+        Assert.Equal("Task", processedTasks[0]);
+    }
+
+
+
+
     private async Task<string> SimulateTask(string name, int delay)
     {
         await Task.Delay(delay);
