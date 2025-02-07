@@ -5,6 +5,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using FluentAssertions;
 using WouterVanRanst.Utils.Collections;
 
 public class TaskCompletionBufferCoyoteTests
@@ -70,7 +71,7 @@ public class TaskCompletionBufferCoyoteTests
     /// Verifies that tasks added after CompleteAdding is called throw exceptions
     /// and that existing tasks are processed correctly.
     /// </summary>
-    [Test]
+    [Fact]
     public static async Task TestAddAfterCompleteAddingThrows()
     {
         await RunCoyoteTest(async (buffer) =>
@@ -87,48 +88,48 @@ public class TaskCompletionBufferCoyoteTests
                 exceptionThrown = true;
             }
 
-            Assert(exceptionThrown, "Add after CompleteAdding should throw");
+            Assert.True(exceptionThrown, "Add after CompleteAdding should throw");
         });
     }
 
-    ///// <summary>
-    ///// Ensures all tasks are processed exactly once even with multiple consumers.
-    ///// </summary>
-    //[Test]
-    //public static async Task TestMultipleConsumersProcessAllTasks()
-    //{
-    //    await RunCoyoteTest(async (buffer) =>
-    //    {
-    //        int numTasks = 20;
-    //        var pendingTasks = new List<TaskCompletionSource<int>>();
+    /// <summary>
+    /// Ensures all tasks are processed exactly once even with multiple consumers.
+    /// </summary>
+    [Fact]
+    public static async Task TestMultipleConsumersProcessAllTasks()
+    {
+        await RunCoyoteTest(async (buffer) =>
+        {
+            int numTasks = 20;
+            var pendingTasks = new List<TaskCompletionSource<int>>();
 
-    //        for (int i = 0; i < numTasks; i++)
-    //        {
-    //            var tcs = new TaskCompletionSource<int>();
-    //            buffer.Add(tcs.Task);
-    //            pendingTasks.Add(tcs);
-    //        }
+            for (int i = 0; i < numTasks; i++)
+            {
+                var tcs = new TaskCompletionSource<int>();
+                buffer.Add(tcs.Task);
+                pendingTasks.Add(tcs);
+            }
 
-    //        buffer.CompleteAdding();
+            buffer.CompleteAdding();
 
-    //        var results = new ConcurrentBag<int>();
-    //        var consumer1 = ConsumeAsync(buffer, results);
-    //        var consumer2 = ConsumeAsync(buffer, results);
+            var results = new ConcurrentBag<int>();
+            var consumer1 = ConsumeAsync(buffer, results);
+            var consumer2 = ConsumeAsync(buffer, results);
 
-    //        // Complete tasks in random order
-    //        var random = new Random();
-    //        while (pendingTasks.Count > 0)
-    //        {
-    //            int index = random.Next(pendingTasks.Count);
-    //            pendingTasks[index].SetResult(pendingTasks.Count);
-    //            pendingTasks.RemoveAt(index);
-    //        }
+            // Complete tasks in random order
+            var random = new Random();
+            while (pendingTasks.Count > 0)
+            {
+                int index = random.Next(pendingTasks.Count);
+                pendingTasks[index].SetResult(pendingTasks.Count);
+                pendingTasks.RemoveAt(index);
+            }
 
-    //        await Task.WhenAll(consumer1, consumer2);
+            await Task.WhenAll(consumer1, consumer2);
 
-    //        Assert(results.Count == numTasks, $"Expected {numTasks} results, got {results.Count}");
-    //    });
-    //}
+            numTasks.Should().Be(results.Count, $"Expected {numTasks} results, got {results.Count}");
+        });
+    }
 
     ///// <summary>
     ///// Validates that the buffer handles the completion order correctly when
@@ -177,13 +178,13 @@ public class TaskCompletionBufferCoyoteTests
         Assert.Equal(0, testResult.NumOfFoundBugs);
     }
 
-    //private static async Task ConsumeAsync(TaskCompletionBuffer<int> buffer, ConcurrentBag<int> results)
-    //{
-    //    await foreach (var task in buffer.GetConsumingEnumerable())
-    //    {
-    //        results.Add(await task);
-    //    }
-    //}
+    private static async Task ConsumeAsync(TaskCompletionBuffer<int> buffer, ConcurrentBag<int> results)
+    {
+        await foreach (var task in buffer.GetConsumingEnumerable())
+        {
+            results.Add(await task);
+        }
+    }
 }
 
 
