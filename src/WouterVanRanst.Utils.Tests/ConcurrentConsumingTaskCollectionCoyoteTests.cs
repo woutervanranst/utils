@@ -13,7 +13,7 @@ public class TaskCompletionBufferCoyoteTests
     /// Tests concurrent addition of tasks and completion signaling to ensure
     /// all tasks are processed and no invalid operations occur.
     /// </summary>
-    [Test]
+    [Fact]
     public static async Task TestConcurrentAddAndCompleteAdding()
     {
         var configuration = Configuration.Create().WithTestingIterations(100);
@@ -36,6 +36,8 @@ public class TaskCompletionBufferCoyoteTests
                     }
                 }
             });
+
+            await producer;
 
             // Signal completion concurrently
             var completer = Task.Run(() => buffer.CompleteAdding());
