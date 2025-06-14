@@ -16,6 +16,18 @@ public static class FileInfoExtensions
     }
 
     /// <summary>
+    /// Copy file to the same directory with a new name.
+    /// </summary>
+    /// <param name="source"></param>
+    /// <param name="name"></param>
+    /// <returns></returns>
+    public static FileInfo CopyTo(this FileInfo source, string name)
+    {
+        var targetPath = Path.Combine(source.DirectoryName, name);
+        return source.CopyTo(targetPath);
+    }
+
+    /// <summary>
     /// Copy file to the target directory with the given name.
     /// </summary>
     public static FileInfo CopyTo(this FileInfo source, DirectoryInfo targetDir, string targetName)
