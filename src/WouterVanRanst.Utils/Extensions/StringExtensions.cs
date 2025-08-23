@@ -14,7 +14,18 @@ public static class StringExtensions
         return str[..Math.Min(str.Length, length)];
     }
 
-    public static string RemovePrefix(this string s, string prefix, StringComparison comparisonType = StringComparison.InvariantCultureIgnoreCase)
+    /// <summary>
+    /// Removes the specified prefix from the beginning of the string, if it exists, using StringComparison.InvariantCultureIgnoreCase
+    /// </summary>
+    public static string RemovePrefix(this string s, string prefix) // NOTE: this overload exists because optional arguments cannot be used in expression trees
+    {
+        return RemovePrefix(s, prefix, StringComparison.InvariantCultureIgnoreCase);
+    }
+
+    /// <summary>
+    /// Removes the specified prefix from the beginning of the string, if it exists using the specified comparisonType
+    /// </summary>
+    public static string RemovePrefix(this string s, string prefix, StringComparison comparisonType)
     {
         if (s.StartsWith(prefix, comparisonType))
             return s[prefix.Length..];
