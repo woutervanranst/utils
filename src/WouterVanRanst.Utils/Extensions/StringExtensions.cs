@@ -34,6 +34,32 @@ public static class StringExtensions
     }
 
     /// <summary>
+    /// Removes the specified character prefix from the beginning of the string, if it exists, using ordinal comparison
+    /// </summary>
+    public static string RemovePrefix(this string s, char prefix)
+    {
+        if (s.Length > 0 && s[0] == prefix)
+            return s[1..];
+
+        return s;
+    }
+
+    /// <summary>
+    /// Removes the specified character prefix from the beginning of the string, if it exists, using case-insensitive comparison
+    /// </summary>
+    public static string RemovePrefix(this string s, char prefix, bool ignoreCase)
+    {
+        if (s.Length > 0)
+        {
+            var firstChar = s[0];
+            if (ignoreCase ? char.ToUpperInvariant(firstChar) == char.ToUpperInvariant(prefix) : firstChar == prefix)
+                return s[1..];
+        }
+
+        return s;
+    }
+
+    /// <summary>
     /// Trim the given value from the end of the string
     /// </summary>
     /// <param name="inputText"></param>
