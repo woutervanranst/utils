@@ -1,6 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-
-namespace WouterVanRanst.Utils.Extensions;
+﻿namespace WouterVanRanst.Utils.Extensions;
 
 public static class IEnumerableExtensions
 {
@@ -73,17 +71,5 @@ public static class IEnumerableExtensions
             .GroupBy(keySelector)
             .Where(group => group.Count() > 1)
             .SelectMany(group => group);
-    }
-
-    public static async IAsyncEnumerable<T> ToAsyncEnumerable<T>(this IEnumerable<T> source, [EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        foreach (var item in source)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            yield return item;
-
-            // Give the scheduler a chance to run other work; keeps it truly async-friendly.
-            await Task.Yield();
-        }
     }
 }
